@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <?!= HtmlService.createHtmlOutputFromFile('CSS_Picker').getContent(); ?>
+    <?!= HtmlService.createHtmlOutputFromFile('CSS_Index').getContent(); ?>
+    <?!= HtmlService.createHtmlOutputFromFile('CSS_GenericClasses').getContent(); ?>
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <base target="_top">
+  </head>
+  
+  <body style="margin-top:20px; margin-left:20%">
+    <div id="idEmailSpnr" class="spinner"></div>
+
+    <div id="idTabsMenu">
+      <div onmouseup="fncShowUpdateFile()" class="theTabsCls">Update File</div>
+      <div onmouseup="fncShowGetNames()" class="theTabsCls">Get File Names</div>
+      <div onmouseup="fncShowExtractAllFiles()" class="theTabsCls">Extract Files from one Project</div>
+    </div>
+
+    <div style="margin-bottom:12px;" id="idAppTitle"><strong>Update Apps Script</strong> - Use the file picker to choose the source file and the target file.</div>
+
+    <?!= evalTpmlt_("HTML_FilePicker"); ?>
+    <?!= HtmlService.createHtmlOutputFromFile('HTML_SourceSettings').getContent(); ?>
+    <?!= HtmlService.createHtmlOutputFromFile('HTML_TargetSettings').getContent(); ?>
+    <?!= HtmlService.createHtmlOutputFromFile('HTML_ChoicesToModify').getContent(); ?>
+    
+    <?!= HtmlService.createHtmlOutputFromFile('HTML_TabGetNames').getContent(); ?>
+    <br/>
+    <?!= HtmlService.createHtmlOutputFromFile('HTML_TabExtract').getContent(); ?>
+  
+    <div id="idMsgArea">
+      <div id="idMsgDiv">Message Area</div>
+      <br/>
+      <div id="idReturnedContent">Message Content Area</div>
+    </div>
+  
+  </body>
+
+  <?!= HtmlService.createHtmlOutputFromFile('JS_Picker').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('JS_Index').getContent(); ?>
+</html>

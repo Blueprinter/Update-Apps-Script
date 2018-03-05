@@ -1,0 +1,18 @@
+<div id="idFilePkr" style="display:none;">
+  <div id="titleFilePkr">
+    <h4 id="titleOne">Apps Scripts</h4>
+    <div id="fromTxt">from</div>
+      <select id="idFolders" onchange="getMoreFiles(this.value)">
+        <option value="DDZQRF111" id="idRootFldr">Root Folder</option>
+        <?!= getUsrFldrs(); ?> 
+      </select>
+
+  </div>
+        
+  <div id="tblFilesList" style="display:none;">Loading</div>
+
+  <div id="idSectionBtn" style="margin-bottom:12px;">
+    <button id="idBtnSlct" class="action" onmouseup="slctBtnWuzClkt()" disabled="disabled">Select</button>
+    <button onmouseup="cnclFilePkr()">Cancel</button>
+  </div>
+</div>

@@ -1,0 +1,60 @@
+<script>
+window.fncShowFiles = function(srcOrTrgt) {
+  document.getElementById("idRootFldr").selected = "selected";
+  document.getElementById("tblFilesList").style.display = "inline";
+  document.getElementById("idFilePkr").style.display = "inline";
+  window.whichBtnWuzClykt = srcOrTrgt;
+  
+  //document.getElementById("tblFilesList").style.backgroundColor = "#0c343d";
+  google.script.run.withSuccessHandler(showListOfScriptFiles).getFilesGS_Code();
+};
+
+window.showListOfScriptFiles = function(strObjScripts) {
+  //console.log('showListOfScriptFiles ran');
+  
+  if (strObjScripts !== "") {
+    document.getElementById('tblFilesList').innerHTML = strObjScripts;
+  } else {
+    document.getElementById('tblFilesList').innerHTML = '<div>No APPS SCRIPT FILES in this Folder</div>';
+  };
+  document.getElementById('tblFilesList').style.backgroundColor = "#b5d5a7";
+};
+  
+window.pkThisFile = function(theElmt) {
+  if (window.lastChoosenLine!==undefined) {
+    window.lastChoosenLine.setAttribute("style","background-color:#b5d5a7; color:black;");
+  };
+
+  var theScriptName = theElmt.childNodes[0].innerHTML,theID = theElmt.childNodes[1].textContent;
+  theElmt.setAttribute("style","background-color:#4a86e8;color:#990000;");
+  window.lastChoosenLine = theElmt;
+  window.ssInfo = theScriptName + "," + theID;
+  
+  document.getElementById('idBtnSlct').removeAttribute('disabled'); //clear disabled attribute on Save btn
+};
+
+window.cnclFilePkr = function() {
+  document.getElementById("tblFilesList").style.display = "none";
+  document.getElementById("idFilePkr").style.display = "none";
+};
+
+window.getMoreFiles = function(whatFldr) {
+  google.script.run.withSuccessHandler(showListOfScriptFiles).getFilesGS_Code(whatFldr);
+};
+
+window.slctBtnWuzClkt = function() {
+  var objWhichPkr = {'src':['idSourceFile','idSrcID'],'trgt':['idTrgetFile','idTrgetID']};
+  var whatKey = window.whichBtnWuzClykt;
+  
+  var elmtIdOfFileName = objWhichPkr[whatKey][0];
+  var tagIdOffileID = objWhichPkr[whatKey][1];
+
+  var arryLastChoosenSS = window.ssInfo.split(",");
+  document.getElementById(elmtIdOfFileName).textContent = arryLastChoosenSS[0];
+  document.getElementById(tagIdOffileID).textContent = arryLastChoosenSS[1];
+
+  document.getElementById("tblFilesList").style.display = "none";
+  document.getElementById("idFilePkr").style.display = "none";
+  document.getElementById("tblFilesList").innerHTML = "<div>Loading . . . . </div>";
+};
+</script>

@@ -1,0 +1,2806 @@
+<script>
+/**
+ * @license
+ * Copyright 2016-2017 Alan J. Wells All Rights Reserved
+ * This code with "zq", "zqFncs" and "AlanWells" as a prefix was written by Alan J. Wells. All rights are reserved ' +
+ * for any code in this Addon.  Any code in this Addon, unless explicitly stated, is the property of Alan J. Wells ' +
+ * and is not liscenced for reuse.
+*/
+
+//The syntax for the zq functions are:
+// zq('name of function','CSS selector',parameter1, parameter2, etc)
+//CSS selector can be an ID or class name-  If an ID then just use the ID name- if a class name
+//then put a period in front of the class name- Class names will be looked up from the current active tab
+
+/* index of functions
+   zqFncs - all start with zqFncs
+   attr - get or set an HTML attribute
+   bgColor - Set background color
+   zqFncs.chk - Set checkbox or get whether the checkbox is checked
+   dletLastChild - Delete the last child of this element or Get the last child under the parent
+   disable - set the element to disabled
+   hideByClass(parentElId,className) - Hide an element by its class name searched for under its parent
+   inAdj - inserts HTML at the end of an element
+   inputs - Get all input tags
+   insrtBfor - insert HTML before the element
+   reqOff - remove all required highlighting
+   remvChld - Removed a child element
+   bigErr
+   show - show an element
+   tgglBtn
+   
+   sleep - sleeps
+   
+   hintHlpTggle
+   AlanWells.addMrgFlds - See also AlanWells.injectMrgFldFromDrpDwn
+   AlanWells.appendTxtToLbl - Append a msg to an input label
+   AlanWells.clearAllMsgs
+   AlanWells.ClsHlp
+   AlanWells.dlgIsOpen
+   AlanWells.getMainElmt - Get the BODY element of the currently displayed window
+   AlanWells.getTabElmt - Get the Tab element
+   AlanWells.getContentDiv
+   AlanWells.getGnrkEmts - Get current tab- err message DIVs- content DIV- Save Btn
+   AlanWells.getThisSpinnerElmt
+   AlanWells.gotHlpHtml - Displays help after getting HTML from the server
+   AlanWells.hideAllMsgs
+   AlanWells.hideE_Msgs - Hide error messages
+   AlanWells.hideSpnr - Hides the spinner
+   AlanWells.injectMrgFldFromDrpDwn - Puts a merge field into some setting box
+   AlanWells.inputSaved - Display message to user after settings are saved
+   AlanWells.NavPgs
+   AlanWells.okToSave_Generic - Check if the save button can be enabled
+   AlanWells.onOffChkBoxClkt
+   AlanWells.OpenDlg
+   AlanWells.resetRadioBtns
+   AlanWells.saveInput - Generic function to save user input
+   AlanWells.SendErr - Log error message to spreadsheet and email installer account
+   AlanWells.serverCodeCompleted - show reduced view and a message - turn off spinner
+   AlanWells.srvrCodeFailed
+   AlanWells.showErrMsg - Shows an error message
+   AlanWells.showOrHideMsgInHelp
+   AlanWells.showHlp
+   AlanWells.showOrHideHlp
+   AlanWells.shwSpnr
+   AlanWells.tgglReducedView
+   AlanWells.TglBtnAndElmt
+*/
+
+window.zq = function(a,b,c,d){//the a parameter is the name of the function to run
+  var el,elmtsByName,m_EL,prnt,runner,theRtrn;
+  //cl('zq b: ' + b);
+  
+  if (!b) {//the b parameter is the CSS selector or an html - The CSS selector is an id or class name
+    AlanWells.SendErr(undefined,'missing b from fnc: ' + a + ' - prop c: ' + c);
+    return;
+  }
+  elmtsByName = ["valByName", "radChk"];//Names of zq functions that get el by name not id's
+  //cl('typeof b in main code: ' + typeof b)
+  //cl('b.nodeType: ' + b.nodeType)
+  
+  if (typeof b === 'object') {//The parameter b can be either a string for an id or an html element
+    //cl('b.constructor: ' + b.constructor)
+    if (Array === b.constructor) {//Its an array,  second parameter allows single value or an array
+      //cl('b is an array')
+      return zqFncs.LoopMulti(a,b,c);
+    } else if (b.nodeType) {//An HTML element was passed in
+      el = b;
+    }
+  } else if (b.indexOf(".") === 0) {//A period was found at the very beginning- This is for getting elements by class
+    m_EL = AlanWells.getTabElmt();
+    el = m_EL.getElementsByClassName(b.slice(1))[0];//Get first class name found in this tab
+  } else if (elmtsByName.indexOf(a) !== -1) {
+    el = document.getElementsByName(b);
+  } else {
+    el = document.getElementById(b);
+  }
+
+  //cl('el: ' + el);
+  
+  if (el===null) {
+    return null;
+  }
+   
+  if (a==="gid") {return el;}
+  a = "zqFncs." + a;//reprocess variable named 'a'.  Add zqFncs. to begin
+  
+  //cl('c: ' + c);
+  
+  if (c===undefined) {//This section calls the function
+    runner = new Function("b","return " + a + "(b)");
+    theRtrn = runner(el);
+  } else {
+    if (d===undefined) {
+      runner = new Function("b,c","return " + a + "(b,c)");
+      theRtrn = runner(el,c);
+    } else {
+      runner = new Function("b,c,d","return " + a + "(b,c,d)");
+      theRtrn = runner(el,c,d);
+    }
+  }
+
+  if (theRtrn && theRtrn !== 'nothing') {//If there was something returned by the function then return it back to the main calling function
+    return theRtrn;
+  }
+};
+
+window.zqFncs.LoopMulti = function(a,array,c) {//run a zq function multiple times
+  var f,i,l,m_EL,elmt,thisSelector;
+  //cl('LoopMulti ran. array: ' + array + ' c: ' + c)
+  if (!array) {
+    var err = new Error();
+    //console.log(err.stack);
+    
+    AlanWells.SendErr(err,'parameter b is falsey in function zqFncs.LoopMulti');
+    return;
+  }
+  
+  if (typeof array !== 'object') {//b must be an array of element selectors
+    var err = new Error();
+    AlanWells.SendErr(err,'parameter b is not an object in function zqFncs.LoopMulti');
+    return;
+  }
+try{
+  if (!c){
+    //cl('c is falsy')
+    f = new Function("b", "zqFncs." + a + "(b)");
+  } else if (c) {
+    f = new Function("b,c", "zqFncs." + a + "(b,c)");
+  }
+  l=array.length;//How many selectors in the array
+  //cl('l: ' + l);
+  
+  for (i=0;i<l;i++) {//Execute the function multiple times
+    thisSelector = array[i];
+    //cl('thisSelector: ' + thisSelector);
+    //the following section takes the CSS selector and gets the HTML element and the HTML element is passed
+    //later to the function- Note that this function does not route the code back through the main zq function
+    //but goes directly to the zqFncs individual function
+    if (thisSelector && typeof thisSelector === 'object') {//this element in the array is an HTML element
+      elmt = thisSelector;
+    } else if (typeof thisSelector === 'string') {
+      if (thisSelector.indexOf(".") === 0) {//A period was found at the very beginning- This is for getting elements by class
+        m_EL = AlanWells.getTabElmt();
+        elmt = m_EL.getElementsByClassName(thisSelector.slice(1))[0];//Get first class name found in this tab
+      } else {
+        elmt = document.getElementById(thisSelector);
+      }
+    }
+
+    if (!c){
+      f(elmt);
+    } else {
+      f(elmt,c)
+    }
+  }
+}catch(e) {
+AlanWells.SendErr(e,'LoopMulti a: ' + a + ' array:' + array + ' c: ' + c);
+};
+};
+
+window.zqFncs.inAdj = function(b,c) {//insertAdjacent at End - append HTML to the end of the current content
+  //cl('b inAdj: ' + b)
+  //cl('c: ' + c)
+  //cl('b.className: ' + b.className)
+  //cl('b.innerHTML: ' + b.innerHTML)
+  //cl('b.name: ' + b.name)
+  
+  if (c !== undefined) { //Don't chk for empty string.  May want to set HTML to empty string  
+    //cl('c: ' + c)
+    b.insertAdjacentHTML("beforeend", c);
+  }
+};
+
+window.zqFncs.insrtBfor = function(b,c) {//insert HTML before the element
+  if (c !== undefined && c !== null) { //Don't chk for empty string.  May want to set HTML to empty string
+    b.insertAdjacentHTML("beforebegin", c);
+  }
+};
+
+window.zqFncs.attr = function(b,c,d) {//attribute get/set
+
+  if (!b || !c) {
+    AlanWells.SendErr(undefined,'ERROR: zqFncs.attr');
+    return;
+  }
+  if (d !== undefined) { //Don't chk for empty string.  May want to set value to empty string
+    b.setAttribute(c, d);
+  } else {
+    return b.getAttribute(c); //return current setting
+  }
+};
+window.zqFncs.bgColor = function(b,c) {//Set background color
+  b.style.backgroundColor = c;
+};
+
+window.zqFncs.chk = function(b,c) {//checked get/set
+  //cl('zqFncs.chk ran: ')
+  //cl('b: ' + b)
+  //cl('c: ' + c)
+  //cl('b.checked: ' + b.checked)
+  if (c !== undefined) { //Do not chk for empty string-  May want to set value to empty string
+    if (c==="true") {
+      b.checked = true;
+    } else if (c==="false") {
+      b.checked = false;
+    } else {
+      b.checked = c;
+    }
+  } else {//The function needs to GET the status- not set the setting
+    return b.checked; //return current setting
+  }
+};
+
+window.zqFncs.dletLastChild = function(b) {//Delete the last child of this element - Get the last child under the parent
+  var theLastChild = b.lastElementChild;
+  if(theLastChild!==null){
+    b.removeChild(theLastChild);
+  }
+};
+
+window.zqFncs.disable = function(b) {
+  //cl('zqFncs.disable ran: ' + b);
+  b.setAttribute('disabled', 'disabled');
+};
+//display
+window.zqFncs.display = function(b,c) {  
+  if (c !== undefined) { //Don't chk for empty string.  May want to set value to empty string
+    b.style.display = c;
+  } else {
+    return b.style.display; //return current setting
+  }
+};
+
+//display inline
+window.zqFncs.displayinline = function(b) {
+  var state = b.style.display;
+  if (state==='none') {b.style.display = 'inline';}
+};
+//enable - removes the disabled setting
+window.zqFncs.enable=function(b){
+  if (b.disabled) {b.removeAttribute('disabled');}
+};
+
+//get input element value - See also val
+window.zqFncs.getvalue = function(b) {return b.value;};
+
+window.zqFncs.getrow=function(b,c){return b.rows[c];};//get row
+
+window.zqFncs.hide = function(b) {//display none - hide an element
+  var ojbStyle,x;//cl('b in hide: ' + b);cl('zqFncs.hide ran ');cl('typeof b: ' + typeof b)
+  ojbStyle = b.style;//Get Style obj-the current style setting of the element
+  if (ojbStyle===undefined) {return;}
+  x = ojbStyle.display;//get current display setting
+  //cl('x: ' + x)
+  if (x && x!=="none") {b.zq_dsply = x;}//store current
+  b.style.display = "none";//Set display style to NONE
+};
+
+window.zqFncs.hideByClass = function(b,c) {//display none - hide an element
+  var elToHide,ojbStyle,x;
+  //cl('hideByClass c: ' + c)
+  //cl('typeof b: ' + typeof b)
+try{
+  elToHide = b.getElementsByClassName(c)[0];
+  //cl('elToHide: ' + elToHide)
+  
+  if (!elToHide) {return;}//There was a problem getting the element to hide- quit
+  ojbStyle = elToHide.style;
+  if (ojbStyle===undefined) {return;}
+  
+  x = ojbStyle.display;//get current display setting
+  //cl('x: ' + x)
+  
+  //store current
+  if (x!=="none" && x!=="") {elToHide.zq_dsply = x;}
+  
+  elToHide.style.display = "none";
+}catch(e) {
+AlanWells.SendErr(e,'Error in function hideByClass c: ' + c);
+};
+};
+
+
+//innerHTML
+window.zqFncs.inHtml = function(b,c) {
+  //cl('inHtml: b' + b + " c: " + c)
+  //cl('b.id: ' + b.id)
+  if (c !== undefined) { //Don't chk for empty string.  May want to set HTML to empty string
+    b.innerHTML = c;
+  } else {
+    //cl('b.innerHTML: ' + b.innerHTML)
+    return b.innerHTML;
+  }
+};
+
+//get all input tags- drop down and textarea values from an HTML Element
+//Important!!  This matches Element IDs to their values-  If there is no Element ID- then then code looks
+//for a name attribute - if there is a name attribute then an array is created with a property name of the
+//name attribute
+//IMPORTANT - Radio buttons in a group, MUST have the same name!!
+//Note that buttons are included, because buttons can have a value attached to them, and not only that, but
+//I'm using a button with a REQUIRED highlighting-  but to turn the required highlighting on and off, it must have
+//a value-  It IS possible to assign a value to a button
+window.zqFncs.inputs = function(b,c,d) {//b is id of the HTML Element with the Input Tags, c is the name of name attributes- d is array
+//of values that are NOT acceptable as valid input for a required field- like "Not Set"
+  var allButtons,allInputs,allSelkts,allTxtArea,allClasses,containsMustHave,crntArr,hasSpace,i,j,daTyp,daInpt,
+  elName,lng,o,missingRequired,izReq,radioArry,reqIzOff,hasInput,newClsList,thisArr,thisInput;
+  
+  //cl('inputs ran: ' + b + " c: " + c);
+  
+try {
+  allInputs = b.getElementsByTagName('input');
+  allSelkts = b.getElementsByTagName('select');
+  allButtons = b.getElementsByTagName('button');
+  allTxtArea = b.getElementsByTagName('textarea');
+
+  //cl('allInputs: ' + allInputs);
+  //cl('allSelkts: ' , allSelkts);
+  //cl('allButtons: ' + allButtons);
+  //cl('allTxtArea: ' + allTxtArea);
+  
+  missingRequired=false;
+  lng=0;
+  o={};
+  radioArry=[];
+  for (i=0;i<4;i++) {//There are 4 arrays of different element types
+    thisArr = [];
+
+    switch(i) {
+    case 0:
+        thisArr = allInputs;//Assign the allInputs array to thisArr
+        break;
+    case 1:
+        thisArr = allSelkts;
+        break;
+    case 2:
+        thisArr = allButtons;//I guess a button can have a value
+        break;
+    case 3:
+        thisArr = allTxtArea;
+        break;
+    }
+    
+    lng=thisArr.length;
+
+    for (j=0;j<lng;j++){
+      thisInput = "";//reset
+      izReq = false;//reset to false on every loop-I have had an issue with fields that do not have
+      //a mustHave class being highlighted as needing to be required
+      thisInput=thisArr[j];
+      if (!thisInput) {continue;}
+      
+      elName = thisInput.name;
+      if (!thisInput.id && !elName) {continue;}//If the element is falsy- or there is no id and also no name for the HTML tag- skip over this
+
+      //cl('j: ' + j);
+      //cl('thisInput.id: ' + thisInput.id);
+      
+      daTyp=thisInput.type;    
+      containsMustHave = thisInput.classList.contains("mustHave");
+      reqIzOff = thisInput.classList.contains("reqButOff");
+      //cl('reqIzOff: ' + reqIzOff);
+      
+      izReq=containsMustHave||reqIzOff?true:false;
+      //cl('izReq: ' + izReq);
+      daInpt=['checkbox','radio'].indexOf(daTyp) !== -1?thisInput.checked:thisInput.value;//If this input type is checkbox
+
+      //cl('daInpt: ' + daInpt);
+      
+      if (thisInput.id) {o[thisInput.id] = daInpt;}//Put input value into object even if it is an empty
+      //string or undefined.  Otherwise, the user cant save a setting as blank, which sometimes needs to be done.
+      if (elName) {
+        crntArr = o[elName];
+        //cl('crntArr: ' + crntArr);
+        if (!crntArr) {
+          o[elName] = [daInpt];
+          //cl('o[elName]: ' + o[elName]);
+        } else {
+          //cl('typeof crntArr: ' + typeof crntArr);
+          if (typeof crntArr === 'object') {
+            //cl('crntArr: ' + crntArr);
+            
+            crntArr.push(daInpt);
+            //cl('crntArr: ' + crntArr);
+            
+            o[elName] = crntArr;
+            //cl('o[elName]: ' + o[elName]);
+          }
+        }
+      }
+
+      if (!izReq) {continue;} //If this input tag is not required, there is nothing left to do.  The data was added to obj
+      
+      hasInput = daInpt?true:false;
+  //cl('hasInput: ' + hasInput);
+      if (thisInput.name===c) {//a name is passed in as an option
+        if(d.indexOf(daInpt) !== -1) {missingRequired = true;}//The value in the input is NOT valid as input for a required field
+      }
+      if (!thisInput.value && izReq) {//has a bad value - but it is required
+        missingRequired = true;
+      }
+      
+      //cl('missingRequired: ' + missingRequired);
+      
+      allClasses = thisInput.className;
+      hasSpace = allClasses.indexOf(" ") !== -1;
+      
+      if (izReq && hasInput) {//It's required, and it HAS input.  HAS input.
+        if (containsMustHave) {thisInput.classList.remove("mustHave");}
+        if (!reqIzOff) {
+          newClsList = hasSpace?" reqButOff":"reqButOff";//If there is already a class name, must have a space
+          thisInput.className += newClsList;
+        }
+      }
+
+      if (izReq && !hasInput) {
+        //cl('izReq && !hasInput is true ');
+        missingRequired = true;
+        //cl('reqIzOff: ' + reqIzOff);
+        if (reqIzOff) {thisInput.classList.remove("reqButOff");}
+        //cl('!containsMustHave is true');
+        if (!containsMustHave) {
+          //cl('reqIzOff: ' + reqIzOff);
+          allClasses = thisInput.className;
+          hasSpace = allClasses.indexOf(" ") !== -1;
+          //cl('hasSpace: ' + hasSpace);
+          
+          newClsList = allClasses + (hasSpace?" mustHave":"mustHave");//If there is already a class name, must have a space
+          //cl('newClsList: ' + newClsList);
+          
+          thisInput.classList.add(newClsList);//This does not take effect immediately but it is working
+          //cl('thisInput.className: ' + thisInput.className);          
+        }
+      }
+    }
+  }
+
+  o.missReq = missingRequired;
+  return o;
+  }catch(e){
+    //cl('Error in zqFncs.inputs: ' + e.message);
+    AlanWells.SendErr(e);
+    //cl('stack: ' + e.stack);
+  }
+};
+
+window.zqFncs.class = function(b,c) {
+  if (c !== undefined) {
+    b.className = c;
+  } else {
+    return b.className;
+  }
+};
+
+//lngth
+window.zqFncs.lngth = function(b) {return b.value.length;}; //how many characters long is the current value
+
+window.zqFncs.reqOff = function(b) {//remove all required highlighting
+  var all,elArray,hasMultiple,i,l,names,thisEl;
+
+  all = b.getElementsByClassName("mustHave");
+  elArray = [];
+  l = all.length;
+  hasMultiple = false;
+  
+  for (i=0;i<l;i++) {//Had bizare behavior of elements being deleted if I dont first push the into an array
+    elArray.push(all[i]);
+  }
+
+  for (i=0;i<l;i++) {
+    thisEl = elArray[i];
+
+    if (!thisEl) {continue;}
+    if (!thisEl.className) {continue;}
+    names = thisEl.className;//Get all the class names in this element
+    names = names.replace("mustHave",'reqButOff');
+    thisEl.className = names;
+  }
+};
+
+//set value
+window.zqFncs.setvalue = function(b,c) {b.value = c;};
+
+window.zqFncs.show = function(b,c) {//show = reset display to previous setting- or parent setting
+  //c is an optional argument for what display setting is wanted
+  var cnt,dsplySet,myPrnt,prevSetting,state,thisElStyle;
+  //cl('show ran ');
+  //cl('b: ' + b);
+  //cl('typeof b: ' + typeof b);
+  //cl('b.id: ' + b.id);
+  //cl('c: ' + c);
+  
+  state = b.style.display;
+  //cl('state: ' + state);
+  if (state!=='none' && c===undefined){return;}//This function is to SHOW an element
+    //If the element is already shown, there is nothing to do- This is NOT to CHANGE the display setting
+
+  if (c!==undefined) { //If there is a specific display setting to make, then make it
+    b.style.display = c;
+    b.zq_dsply = c; //Record the setting inside the elments object
+    return;
+  }
+  
+  prevSetting = b.zq_dsply; //Chk for a previous setting being recorded
+  //cl('prevSetting: ' + prevSetting);
+  if (prevSetting && prevSetting !== "none") {
+    b.style.display = prevSetting;
+  } else {
+    /* When display is set to NONE with inline CSS, there is no prior record of what the elements display
+     * setting was
+     * Loop up through parents until you get a display setting */
+    myPrnt = b.parentNode;
+    cnt=0;
+    
+    //cl('myPrnt: ' + myPrnt);
+    if (myPrnt===undefined) {return;}//The parent ELEMENT is undefined - not the display setting
+
+    while (myPrnt !== undefined) {
+      if (cnt>5) break;
+      cnt++;
+      //cl('cnt: ' + cnt);
+      thisElStyle = myPrnt.style;
+      if (thisElStyle===undefined  || thisElStyle === "none") {continue;}
+      dsplySet = thisElStyle.display;
+      //cl('dsplySet: ' + dsplySet);
+      if (dsplySet!=="" && dsplySet!=="none") {//A valid setting was found - quit looking
+        break;
+      } else {
+        if (myPrnt==="body") {//Only go as high as body
+          break;
+        }
+        myPrnt = myPrnt.parentNode;
+      }
+    }
+    
+    //cl('dsplySet: ' + dsplySet);
+    if (dsplySet==="" || dsplySet==="none") { //If, after searching, no setting was found, set to block
+      dsplySet='block';
+    }
+
+    //cl('Very final dsplySet: ' + dsplySet);
+    b.style.display = dsplySet;
+    b.zq_dsply = dsplySet; //Record the setting inside the elments object
+  }
+};
+
+window.zqFncs.remvChld = function(b,c) {
+  b.removeChild(c);
+};
+
+//textContent;
+window.zqFncs.txt = function(b,c) {
+  if (c !== undefined) { //Don't chk for empty string.  May want to set HTML to empty string
+    b.textContent = c;
+  } else {
+    return b.textContent;
+  }
+};
+
+//Which radio btn is selected.  The usage syntax is zq('radChk','name of radio buttons')
+window.zqFncs.radChk = function(arr) {
+  var i,L;
+  L = arr.length;
+  for (i=0; i<L; i++) {
+    if (arr[i].checked) {return arr[i].value;break;}
+  }
+};
+//reset a form - NOTE reset will NOT clear literal values set in HTML!!
+window.zqFncs.reset = function(b) {b.reset();};
+//rows
+window.zqFncs.rows = function(b,c) {  
+  if (c !== undefined) { //Don't chk for empty string.  May want to set value to empty string
+    b.rows = c;
+  } else {
+    return b.rows; //return current setting
+  }
+};
+
+//selected - return what option from a drop down list is selected
+//parameter 'b' must be an id of the 'select' tag, not the option tag. There is an 'add' option in parameter 'd'.  If the 'add'
+//option is used, and no existing match is found, the option is added to the list.
+window.zqFncs.select = function(b,c,d) {  
+  if (c !== undefined) { //Don't chk for empty string.  May want to set value to empty string
+    var allOptions = b.getElementsByTagName("option"); //Get all current options inside of this select tag
+    var i = 0, thisOptionVal="";
+    
+    for (i=0;i<allOptions.length;i++) {
+      thisOptionVal = allOptions[i].value;
+      if (thisOptionVal===c) {
+        allOptions[i].selected = true;
+        return;
+      }
+    }
+    
+    //if the 'add' option is used, you can't just add the option and quit. If option is there, there'd be a dup
+    if (d==='add') {
+      var newOp = "<option value='" + c + "' selected>" + c + "</option>";
+      
+      b.insertAdjacentHTML("beforeend", newOp);
+      return;
+    }
+    
+  } else {
+    return b.selected; //return current setting
+  }
+};
+
+//size
+window.zqFncs.size = function(b,c) {  
+  if (c !== undefined) { //Don't chk for empty string.  May want to set value to empty string
+    b.size = c;
+  } else {
+    return b.size; //return current setting
+  }
+};
+
+//toggle b=id, c=value to compare E.g. this.value, d=value to compare
+window.zqFncs.toggle = function(b,c,d) {
+  if(c===d) {//Check state
+    zq('show', b.id);
+  } else {
+    zq('hide', b.id);
+  }
+};
+
+//toggle b=id of element to get display status
+window.zqFncs.tgglshow = function(b,c) {//the parameter c is optional - it is an explicit choice for the display type
+  //cl('b in tgglshow: ' + b)
+  
+  if(b.style.display==='none') {//Check state
+    zq('show',b,c);
+  } else {
+    zq('hide',b);
+  }
+};
+
+window.zqFncs.showAll = function(b,c,d) {//b is the element to show or hide
+//c is the id of the element of the button to change the text in
+//the parameter e is the text for the element hidden and f if for the text for element shown
+  //cl(b + " " + c + " " + d)
+  zq('show',b.id);
+  zq('txt', c, d);//inject text d into element c
+};
+
+window.zqFncs.hideAll = function(b,c,d) {//b is the element to show or hide
+//c is the id of the element of the button to change the text in
+//the parameter e is the text for the element hidden and f if for the text for element shown
+  //cl(b + " " + c + " " + d)
+  zq('hide',b.id);
+  zq('txt', c, d);//inject text d into element c
+};
+
+//toggle b=id of element to get display status
+window.zqFncs.tggltxt = function(b,c,d) {
+  if(b.textContent===c) {//Check state
+    zq('txt', b, d);
+  } else {
+    zq('txt', b, c);
+  }
+};
+
+window.zqFncs.tgglBtn=function(whchSideOfBtnElmt){//Toggle the ON/OFF button that I have designed
+  var input,parunt;
+  parunt = whchSideOfBtnElmt.parentNode.parentNode;
+  input = parunt.getElementsByTagName('input')[0];
+  //cl('input: ' + input);cl('input: ' + input.checked)cl("whchSideOfBtnElmt.className " + whchSideOfBtnElmt.className)
+  if (input.checked !== false){//It is either ON or some bad value
+    //cl('the button is originally ON')
+    if (whchSideOfBtnElmt.className==='onPart'){return "nc"}//Return nc and Do nothing - They clicked ON and it is already ON
+    input.checked = false;//Change the input check button to false
+    return "off"; //return current setting
+  }else{ //The ONLY time this will run is if the check box is UN checked
+    //cl('it is not false')
+    if (whchSideOfBtnElmt.className==='offPart'){return "nc";}//Return nc and Do nothing - They clicked OFF and it is already OFF
+    input.checked = true;
+    return "on";//return current setting
+  }
+};
+
+//get or set value by id
+window.zqFncs.val=function(b,c){if(c!==undefined){//Don't chk for empty string.  May want to set value to empty string
+b.value=c;}else{return b.value;}};
+
+//Get all selected values from a list box. If c is true, also get text content
+window.zqFncs.vals=function(b,c) {
+  var allVals = [];
+  for (var i=0;i<b.options.length;i++){
+    if(b.options[i].selected){
+      allVals.push(b.options[i].value);
+      if (c===true) {
+        allVals.push(b.options[i].textContent);
+      }
+    }
+  }
+  return allVals;
+};
+
+//get or set value by name
+window.zqFncs.valByName = function(b,c) { 
+  if (c !== undefined) { //Don't chk for empty string.  May want to set value to empty string
+    b[0].value = c;
+  } else {
+    return b[0].value;
+  }
+};
+
+window.zqFncs.vldtEmale = function(el,daEml) {//This function changes the background color of a field to red if 
+//the email entered in THAT field is found to have a problem.  Don't use this for checking whether a field is required or not.
+  var arr,au,domain,dxOfAmp,i,izBad,lcl,v;
+  if (daEml===""){return 'good';}//If the value is blank the user may want to reset value to empty
+  au = [" ","(",")",","];//Not accepted in any part of the email address
+  arr = ["[","]",":",";",'"',"!","#","$","%","<",">","`","|","DEL"];//Not accepted in local
+  
+  dxOfAmp = daEml.indexOf("@");
+  
+  if (dxOfAmp === -1) {
+    return "no ampersand";
+    izBad = true;
+  }
+  
+  lcl = daEml.slice(0,dxOfAmp);
+  domain = daEml.slice(dxOfAmp+1);
+
+  if (domain.indexOf(".") === -1) {
+    return "no period in domain";
+    izBad = true;
+  }
+
+  for (i=0;i<au.length && !izBad;i++) {//check entire email
+    v = au[i];
+    if (daEml.indexOf(v) !== -1) {izBad = true;break;}
+  }
+
+  for (i=0;i<arr.length && !izBad;i++) {//check local part
+    v = arr[i];
+    if (lcl.indexOf(v) !== -1) {izBad = true;break;}
+  }
+  
+  if (izBad && el) {
+    el.style.backgroundColor = "#f4cccc";
+    return v;
+  } else {
+    el.style.backgroundColor = "";//If background color was set to red, remove it
+    return 'good';
+  }
+};
+
+window.zqFncs.byTag = function(b,c) {
+  return b.getElementsByTagName(c);
+};
+
+window.zqFncs.editableDivVal = function(b,c) {
+  var els,objVals,i,id,L,thizEl,val;
+  //cl('zqFncs.editableDivVal ran'," b.className: " + b.className + " c: " + c);
+  objVals = {};
+  
+  if (b.className === 'Dt_Drktr_cntntEditable') {//If the element passed in has the editable class
+  //name- then just get the contents and return the object
+    id = b.id;
+    val = b.innerHTML;
+    //cl('val',val);
+    //cl('id',id);
+    objVals[id] = val;
+    //cl('objVals',JSON.stringify(objVals));
+    return objVals;
+  }
+  
+  els = b.getElementsByClassName("Dt_Drktr_cntntEditable");
+  //cl('els',els);
+
+  L = els.length;
+  //cl('L',L);
+  
+  for (i=0;i<L;i++) {
+    thizEl = els[i];
+    //cl('thizEl',thizEl);
+    val = thizEl.innerHTML;
+    //cl('val',val);
+    id = thizEl.id;
+    objVals[id] = val;
+  }
+  //cl('objVals',objVals);
+  return objVals;
+};
+
+window.AlanWells.disableSaveBtn = function() {//For this to work the Save button must have a class name of saveBtnClass
+  AlanWells.enableOrDisableSaveBtn('disable');//and be under the tab element recorded in the window- see navPgs
+}
+
+window.AlanWells.enableSaveBtn = function() {
+  AlanWells.enableOrDisableSaveBtn('enable');
+}
+
+window.AlanWells.enableOrDisableSaveBtn = function(which) {//See comment for disableSaveBtn
+  var contentDiv,crrntDivID,saveBtnEl,tabContentEl;
+try{
+  crrntDivID = window.idOfDivCurrentlyDisplayed;
+  tabContentEl = zq('gid',crrntDivID);//The the HTML element object of the currently displayed tag
+  //cl('currentTabID: ' + currentTabID);
+  //cl('tabContentEl: ' + tabContentEl);
+  
+  if (tabContentEl) {//If the code above successfully got the main element that the user is using
+    saveBtnEl = tabContentEl.querySelectorAll(".saveBtnClass")[0];
+    //cl(' ' + );
+    
+    if (saveBtnEl) {
+      if (which === 'enable') {
+        if (saveBtnEl.disabled) {saveBtnEl.removeAttribute('disabled');}
+      } else if (which === 'disable') {
+        saveBtnEl.setAttribute('disabled', 'disabled');
+      }
+    }
+  }
+}catch(e) {
+  AlanWells.SendErr(e,'Error in function AlanWells.enableOrDisableSaveBtn: ');
+}
+}
+
+window.AlanWells.hideE_Msgs = function() {
+  var bigErrDiv,contentDiv,crrntDivID,errBoxEl,gnrkMsgEl,idInnerMsgDiv,tabContentEl;
+try{
+  crrntDivID = window.idOfDivCurrentlyDisplayed;
+  tabContentEl = zq('gid',crrntDivID);//The the HTML element object of the currently displayed tag
+  //cl('currentTabID: ' + currentTabID);
+  //cl('tabContentEl: ' + tabContentEl);
+  
+  if (tabContentEl) {//If the code above successfully got the main element that the user is using
+    errBoxEl = tabContentEl.querySelectorAll(".errorBox")[0];
+    idInnerMsgDiv = tabContentEl.querySelectorAll(".gnrkMsgToUser")[0];
+    bigErrDiv = tabContentEl.querySelectorAll(".bigErrClass")[0];
+    gnrkMsgEl = tabContentEl.querySelectorAll('.gnrkRdctViewDiv')[0];
+    //cl('elSaveBtn .id: ' + elSaveBtn.length);
+    
+    if (errBoxEl) {
+      errBoxEl.style.display = "none";
+    }
+    if (idInnerMsgDiv) {
+      idInnerMsgDiv.style.display = "none";
+    }
+    if (bigErrDiv) {
+      bigErrDiv.style.display = "none";
+    }
+    
+    //cl('gnrkMsgEl',gnrkMsgEl)
+    if(gnrkMsgEl) {
+      gnrkMsgEl.style.display = 'none';
+    }
+  }
+}catch(e) {
+  AlanWells.SendErr(e,'Error in function AlanWells.hideE_Msgs: ');
+}
+}
+
+window.AlanWells.getContentDiv = function() {//Gets the element with class name gnrkContent
+  var activeTab,mainElmt,contentDiv;
+  
+  activeTab = window.idOfDivCurrentlyDisplayed;
+  if (activeTab) {
+    //cl('there is a setting for the active tab')
+    mainElmt = zq('gid',activeTab);
+  }
+  contentDiv = mainElmt.querySelectorAll(".gnrkContent")[0];
+  
+  return contentDiv;
+}
+
+window.AlanWells.getMainElmt = function() {//The BODY element of the MAIN outer HTML - this
+// is NOT for the individual tab
+  var activeEl,activeTab,currentEl,i,mainElmt,parerunt,startingPoint;
+try{
+  startingPoint = document.getElementsByClassName('EntireSite')[0];
+  
+  if (!startingPoint) {
+    startingPoint = window.idOfDivCurrentlyDisplayed;
+  }
+  
+  if (!startingPoint) {
+    //cl('there is a setting for the active tab')
+    startingPoint = document.activeElement;//Get the element that currently has the focus
+  }
+
+  currentEl = startingPoint;
+  
+  for (i=0;i<7;i++) {//Loop 7 times or less to traverse up to BODY tag of this tab
+    //This should ensure that the spinner element obtained is always specific to the currently
+    //displayed window
+
+    parerunt = currentEl.parentElement;
+
+    if (!parerunt) break;
+    //cl('parerunt.tagName: ' + parerunt.tagName)    
+    
+    if (parerunt.tagName === "HEAD" || parerunt.tagName === 'BODY') {
+      mainElmt = currentEl;
+      break;
+    }
+    
+    currentEl = parerunt;
+  }
+  
+  if (!mainElmt) {
+    mainElmt = document.getElementsByTagName('BODY');//Get the BODY tag of this entire dialog or sidebar
+    if (mainElmt) {
+      if (mainElmt.length>0) {
+        mainElmt = mainElmt[0];
+      }
+    }
+  }
+  //cl('mainElmt one: ' + mainElmt)
+  
+  return mainElmt;
+}catch(e) {
+  AlanWells.SendErr(e,'Error in function AlanWells.getMainElmt: ');
+}
+}
+
+window.AlanWells.getTabElmt = function() {
+try{
+  var thisTabEl,thisTabID;
+  thisTabID = window.idOfDivCurrentlyDisplayed;//Get the ID of the tab currently being shown
+  //cl('thisTabID in getGnrkEmts: ',thisTabID);
+  
+  if (!thisTabID) {
+    //dont send an error because the sidebar doesnt have tabs but this code gets run when the sidebar
+    //opens up a dialog box-
+    //The sidebar doesnt have a tab ID so you dont need to send an error if was the sidebar opening up a dialog box
+    return;
+  }
+  
+  if (thisTabID) {
+    thisTabEl = document.getElementById(thisTabID);//Use the ID of the tab being shown to get the element
+  }
+    
+  return thisTabEl;
+}catch(e) {
+  AlanWells.SendErr(e,'Error in function AlanWells.getTabElmt: ');
+} 
+};
+
+window.AlanWells.getThisSpinnerElmt = function(spnr_ID) {
+  var actvEl,allDivsInChgVw,allSpinnrs,chgVwEl,daSpinHtml,i,mainElmt,spnrElmt;
+
+try{
+  //cl('spnr_ID: ' + spnr_ID)
+  if (spnr_ID) {//First check whether the spinner ID was passed in
+    spnrElmt = zq('gid',spnr_ID);//Get the HTML element of the spinner
+    if (spnrElmt) {
+      return spnrElmt;
+    }
+  }
+  
+  if (!spnrElmt) {
+    mainElmt = AlanWells.getTabElmt();
+    //cl('mainElmt one: ' + mainElmt)
+
+    if (mainElmt) {
+      allSpinnrs = mainElmt.getElementsByClassName('spinner');
+      //cl('allSpinnrs: ' + allSpinnrs)
+      spnrElmt = allSpinnrs[0];
+      //cl('spnrElmt zero: ' + spnrElmt)
+    }
+  }
+  
+  //cl('spnrElmt first: ' + spnrElmt)
+  
+  if (!spnrElmt) {//The spinner ID or main element could have been set wrong
+    allSpinnrs = document.getElementsByClassName('spinner');//get all HTML elements by spinner class name
+    //cl('allSpinnrs: ' + allSpinnrs)
+    spnrElmt = allSpinnrs[0];
+    //cl('spnrElmt second: ' + spnrElmt)
+  }
+  
+  //cl('spnrElmt third: ' + spnrElmt)
+  if (!spnrElmt) {//If there is no spinner element to be found- inject one into the current shown element
+    //cl('Error - no spnrElmt: ',spnrElmt)
+    
+    //Inject the spinner into whatever element you can find
+    if (mainElmt) {
+      mainElmt.insertAdjacentHTML('beforeend', '<div class="spinner"></div>');
+      spnrElmt = mainElmt.getElementsByClassName('spinner')[0];
+    } else {
+      chgVwEl = document.getElementById('ChgViewSection');
+      if (chgVwEl) {
+      allDivsInChgVw = chgVwEl.getElementsByTagName("DIV");
+    
+      for (i=0;i<allDivsInChgVw.length;i++) {
+        actvEl = allDivsInChgVw[i];
+      
+        if (actvEl.style.display != "none") {
+          break;
+        }
+      }
+      actvEl.insertAdjacentHTML('beforeend', '<div class="spinner"></div>');
+      }
+      spnrElmt = actvEl.getElementsByClassName('spinner')[0];
+    }
+    
+    //cl('spnrElmt: ',spnrElmt)
+  }
+  
+  return spnrElmt;
+}catch(e) {
+  AlanWells.SendErr(e,'Error in function AlanWells.getThisSpinnerElmt: ');
+} 
+}
+
+window.AlanWells.GotHtml = function(r) {
+  var daHTML,trgtElmt,fncToRun;
+  //cl('AlanWells.GotHtml ran: ' + r.slice(0,100))
+try{
+  if (!r) {
+    daHTML = "<div>There was an error getting the HTML!</div><br><div>Send an email to aj.addons@gmail.com</div>";
+    trgtElmt = document.getElementsByTagName("BODY")[0];
+    //cl('trgtElmt',trgtElmt)
+    trgtElmt.innerHTML = daHTML;
+    AlanWells.SendErr(undefined,'There was an error in the GotHtml function. There is no content returned from the server');
+    return;
+  } else {
+    daHTML = r;
+  }
+  //cl('daHTML',daHTML.slice(0,100))
+  AlanWells.hideSpnr();
+  
+  trgtElmt = window.$aWellsSets.elToGetHtml;
+  //cl('trgtElmt',trgtElmt)
+  
+  if (!trgtElmt) {
+    window.$aWellsSets.navInProcess = false;//Reset
+    window.$aWellsSets.tabBeingProcessed = [];
+    AlanWells.SendErr(undefined,'Error in function AlanWells.GotHtml the element to receive the HTML ' +
+    'was not set');
+    return;
+  }
+  trgtElmt.innerHTML = daHTML;
+  //cl('window.$aWellsSets.tabBeingProcessed: ',window.$aWellsSets.tabBeingProcessed)
+  window.$aWellsSets.tabBeingProcessed.shift();//remove the first element in the array
+  //cl('window.$aWellsSets.tabBeingProcessed: ', window.$aWellsSets.tabBeingProcessed)
+  window.$aWellsSets.navInProcess = false;//Reset
+  
+  fncToRun = window.$aWellsSets.fncToRunOnNav;
+  
+  //cl('fncToRun: ',fncToRun)
+  if (fncToRun) {
+    fncToRun = new Function("",fncToRun + "()");
+    fncToRun();
+  }
+  
+  AlanWells.showOrHideMsgInHelp({"hide":true});//hide the help DIV - I might put a message in the Help DIV
+  //as an alternative to puttting it in the reduced view section
+}catch(e) {
+  window.$aWellsSets.navInProcess = false;//Reset
+  window.$aWellsSets.tabBeingProcessed = [];
+  AlanWells.SendErr(e,'Error in function AlanWells.GotHtml: ');
+}
+};
+
+window.AlanWells.hideBothHelpAndErr = function() {
+  AlanWells.hideBllnTips();
+  AlanWells.hideAllMsgs();//Add a class name to ALL of you help messages so that you
+  //can get them by class and not need to know what the IDs are
+};
+
+window.AlanWells.sleep = function(ms,n) {
+  //cl('sleep ran - ms: ' + ms + " n: " + n)
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+window.AlanWells.NavPgs = async function(thz,po) {
+try{
+  /*
+   * idOfElmtForHTML - 
+   * setsKey   - A special key name used to look up settings in the server side code - Not always used
+   * wt        - is an optional argument for the server to use
+   * chainFnc  - is the function to run after the HMTL has loaded
+   * waitTime  - A number range to be shown to the user for how many seconds they can expect to wait - dont add the word seconds
+   * alt_ID_forHtml - is for a situation where there is already some content in the page and the element to
+  //be injected is not the same as the element to be shown-Normally the element to be injected and the
+  //element to be shown is the same-  Typically there may not be any content at all to begin with in
+  //the element to be shown and so content needs to be retrieved-  But I want to put SOME content in
+  //the page first if it helps with how fast the content is displayed-  It is about balancing the work
+  //load
+  */
+  var alreadyRunning,allTabs,alt_ID_ToGetHTML,chainFnc,chldNodeCnt,currentIdBeingProcessed,tabEl,elToGetHtml,elToShow,
+  fncToRun,i,setsKey,thisInstanceSets,waitTime,wt;
+  
+  //cl('po.idOfElmtForHTML: ' ,po.idOfElmtForHTML)
+
+  //convert to po
+  //elmt,fileToGet,idOfElmtForHTML,wt,waitTime,chainFnc,alternate
+
+  tabEl = thz.parentNode;
+  //cl('tabEl',tabEl)
+  //cl('NavPgs ran: ' ,tabEl.tagName)
+  
+  if (!window.$aWellsSets[po.idOfElmtForHTML]) {//test if the storage object exists
+    window.$aWellsSets[po.idOfElmtForHTML] = {};//This is to store the parameters that were just passed in- The reason this needs to happen
+    //is because if the user clicks two tabs in rapid succession then the variable values for the first tab get
+    //overwritten before the code has finished- resulting in an unexpected result
+  }
+  
+  window.$aWellsSets[po.idOfElmtForHTML] = {//Create an object of the settings just passed in with a key of the id of element
+    "tabEl":tabEl,//This needs to be done as soon as possible in case another call comes in
+    "setsKey":po.setsKey,
+    "w":po.wt,
+    "waitTime":po.waitTime,
+    "chainFnc":po.chainFnc,
+    "altID":po.alt_ID_forHtml
+  };
+  
+  if (!window.$aWellsSets.tabBeingProcessed) {//If the array to hold what tab is being processed has not been defined
+    window.$aWellsSets.tabBeingProcessed = [];
+  }
+  
+  window.$aWellsSets.tabBeingProcessed.push(po.idOfElmtForHTML);//add the id to an ARRAY - the current
+  //id being processed is always the element at index zero-At the end of the process the first element is removed-
+  //If multiple tabs are being processed then there will be more than one id in the array
+  
+  alreadyRunning = window.$aWellsSets.navInProcess;//Try to get a boolean out of the variable saved to the browser
+  //cl('alreadyRunning: ',alreadyRunning)
+  
+  if (alreadyRunning === true) {//If the code is still trying to load another tab or other HTML
+    for (i=0;i<40;i++) {//Loop up to 40 times or 20 seconds
+      alreadyRunning = window.$aWellsSets.navInProcess;
+      if (alreadyRunning === true) {
+        //cl('call sleep')
+        await AlanWells.sleep(500);//Wait half a second
+      }
+    }
+  }
+  
+  window.$aWellsSets.navInProcess = true;//Set this to true at beginning and to false when done
+  
+  currentIdBeingProcessed = window.$aWellsSets.tabBeingProcessed[0];//The current tab being processed- is always at index zero
+  thisInstanceSets = window.$aWellsSets[currentIdBeingProcessed];//Retrieve the settings that were previously saved to the browser window
+  
+  //cl('currentIdBeingProcessed: ',currentIdBeingProcessed)
+  //cl('thisInstanceSets: ',thisInstanceSets)
+  //cl('thisInstanceSets.tabEl: ',thisInstanceSets.tabEl)
+  //cl('thisInstanceSets.setsKey: ',thisInstanceSets.setsKey)
+  
+  tabEl = thisInstanceSets.tabEl;//Retrieve the value previously put into the browser
+  setsKey = thisInstanceSets.setsKey;//This may seem kind of weird that the code is getting settings that were just
+  wt = thisInstanceSets.w;//entered into the browser above but that is to deal with the issue of the user clicking
+  waitTime = thisInstanceSets.waitTime;
+  chainFnc = thisInstanceSets.chainFnc;//
+  alt_ID_ToGetHTML = thisInstanceSets.altID;//
+  
+  elToShow = document.getElementById(currentIdBeingProcessed);
+  //cl('elToShow: ' , elToShow)
+  
+  if (elToShow) {
+    //cl('elToShow.id: ' , elToShow.id)
+    elToShow.style.display = 'block';//Show the tab elmt to receive the HTML even if HTML has not been injected yet
+  }
+  //cl('alt_ID_ToGetHTML' , alt_ID_ToGetHTML)
+  if (!alt_ID_ToGetHTML) {//There is not an element to get the HTML that is different than the element to show
+    window.$aWellsSets.elToGetHtml = elToShow;
+    chldNodeCnt = elToShow.childNodes.length;
+  } else {
+    elToGetHtml = document.getElementById(alt_ID_ToGetHTML);
+    window.$aWellsSets.elToGetHtml = elToGetHtml;
+    elToGetHtml.style.display = 'block';//Show the tab elmt to receive the HTML even if HTML has not been injected yet
+    chldNodeCnt = elToGetHtml.childNodes.length;
+  }
+  
+  window.$aWellsSets.fncToRunOnNav = chainFnc;//Store function name to run after content is loaded
+  window.$aWellsSets.w = wt;//Store tab number in case needed- for example for the file picker
+  
+  allTabs = document.getElementsByClassName('DD_TabsFancy_Selected');
+  allTabs[0].removeAttribute("class");//Note the index of zero- there should only be one element
+  //that has a class name of DD_TabsFancy_Selected- Remove the class attribute of first element in array
+  
+  //cl('tabEl',tabEl)
+  tabEl.className = "DD_TabsFancy_Selected";//Cause the element passed in to be the selected tab-not content-which is different
+
+  /*if (!currentIdBeingProcessed) {
+    alert('Developer!  AlanWells.NavPgs You need to add a DIV element to get the tab/page content');  
+    return false;
+  }*/
+  if (window.idOfDivCurrentlyDisplayed !== po.idOfElmtForHTML) {//If the ID of the DIV currently displayed is not the same as
+    //the ID of the DIV to display then this is for a regular operation-  If they are the same then this is for a refresh
+    //of the same tab which means that there is no need to hide the currently displayed tab
+    //cl('window.idOfDivCurrentlyDisplayed: ',window.idOfDivCurrentlyDisplayed)
+    zq('hide',window.idOfDivCurrentlyDisplayed);//hide currently displayed
+  }
+  
+  window.idOfDivCurrentlyDisplayed = currentIdBeingProcessed;//replace value with new value
+  
+  if (po.setsKey) {//There are situations where multiple tabs have the same scriptlet settings like 4 email tabs-
+    //so sometimes there needs to be both a setsKey and an id key
+    setsKey = po.setsKey;
+  } else {
+    setsKey = po.idOfElmtForHTML;//Use the id of the element to get the HTML as the key name to get settings
+  }
+  
+  //cl('chldNodeCnt: ' , chldNodeCnt)
+  //cl('setsKey: ' , setsKey)
+  //cl('chainFnc: ', chainFnc)
+  
+  if (chldNodeCnt===0){// If element is empty get HTML and inject 
+    AlanWells.shwSpnr();
+
+    waitTime = waitTime ? "Wait Time: " + waitTime + " seconds":"Wait until spinner stops.";
+    
+    if (!alt_ID_ToGetHTML) {
+      zq('inHtml',elToShow,'Please Wait ... <br>' + waitTime);//These MUST be seperated out into two different lines
+      //depending upon whether there is an alternate ID to put the content in or not
+    } else {
+      zq('inHtml',elToGetHtml,'Please Wait ... <br>' + waitTime);
+    }
+    
+    window.infoForSrvrErr = "FUNCTION: AlanWells.NavPgs";
+    
+    if (setsKey && !po.doNotCallSrvr) {//There is a special situation where I cant have the code make a server call
+      //here to get the content- So there is a special key for doNotCallSrvr - Normally the doNotCallSrvr key will be
+      //non existent and therefor will be undefined and so !po.doNotCallSrvr or NOT UNDEFINED should test as true
+      google.script.run.withFailureHandler(AlanWells.srvrCodeFailed)
+        .withSuccessHandler(AlanWells.GotHtml).awMain(['bt',{'setsKey':setsKey,'w':wt}]);
+    } else if (chainFnc) {//Need to run another function after tab is displayed
+      fncToRun = new Function("",chainFnc + "()");
+      //cl('fncToRun: ',fncToRun)
+      fncToRun();
+    } else {
+      AlanWells.SendErr(undefined,'There is neither a setsKey or a chainFnc');
+    }
+  } else {
+    //cl('else part: ','ran')
+    window.$aWellsSets.tabBeingProcessed.shift();//remove the first element in the array
+    window.$aWellsSets.navInProcess = false;//reset so next tab processing can run
+  }
+  
+}catch(e) {
+  //cl('error',e.message);
+  //cl('stack',e.stack);
+  
+  window.$aWellsSets.navInProcess = false;//reset
+  window.$aWellsSets.tabBeingProcessed = [];//reset
+  AlanWells.SendErr(e,'Error in function AlanWells.NavPgs: ');
+}
+};
+
+window.AlanWells.onOffChkBoxClkt = function(chktStatus,w) {
+try{
+  if (chktStatus) {//Chk box was UNCHECKED- this is the OLD status of checked
+    AlanWells.enableSaveBtn();//enable Save btn- Yes thats right
+    //Because if it was originally checked this is turning it OFF and it must be saved
+  } else {
+    //The value captured and sent here is the OPPOSITE of what it is NOW
+    //This is the OLD value!!!!  So the box was just checked
+  }
+}catch(e) {
+AlanWells.SendErr(e,'onOffChkBoxClkt chktStatus: ' + chktStatus + ' w:' + w);
+};
+};
+
+window.AlanWells.showBalloonIf = function(argPassed,idForValueForTest) {
+  var currentSS,thisTabEl;
+try{
+  AlanWells.hideBllnTips();
+  
+  if (idForValueForTest) {
+    if (zq('val',idForValueForTest) === 'true') {return;}
+  }
+
+  //var objIdsToBranch = {'idOnOffDestinashun':''};
+  
+  if (argPassed === 'onOffDestBtn') {
+    thisTabEl = AlanWells.getTabElmt();
+    var currentSS = thisTabEl.getElementsByClassName('crrntDestSSName')[0];
+    //If someone just turned the button OFF, no point in showing more help tips.
+    if (currentSS === 'Not Set' || currentSS === "") {AlanWells.shwHlpTip('idShowHelpSS');}
+  }
+}catch(e) {
+  AlanWells.SendErr(e,'Error in function AlanWells.showBalloonIf');
+}
+};
+
+window.AlanWells.srvrCodeFailed = function(errObj) {
+try{
+  window.$aWellsSets.navInProcess = false;//Reset - This is specific to navPgs function
+  //cl('srvrCodeFailed: ' + errObj)
+
+  AlanWells.SendErr(errObj,'There was an error on the Google Server.');
+}catch(e) {
+  //cl('caught error in AlanWells.srvrCodeFailed: ' + e.message)
+  AlanWells.SendErr(e,'There was an error in client function AlanWells.srvrCodeFailed.');
+}
+};
+
+window.AlanWells.injectMrgFldFromDrpDwn = function(thiz,w,a,classNameToGetMrgFld) {
+  //This gets the merge field from a drop down list as opposed to a list where you can
+  //choose multiple items
+  var allChldrn,elmtToInject,h,firstChld,L,lastChld,thId,thisTabEl,txtVal;
+  //First- get the last child and if it's empty do not add a new field
+  thisTabEl = AlanWells.getTabElmt();
+  elmtToInject = thisTabEl.getElementsByClassName(classNameToGetMrgFld)[0];
+  
+  allChldrn = elmtToInject.children;
+  L = allChldrn.length;
+  lastChld = allChldrn[L-1];
+
+  if (lastChld.value) {//There is something in the input field 
+    Dt_Drktr_addNewInput(lastChld);//Add a new input field
+    lastChld = zq('gid',id+w).lastChild;
+  }
+
+  txtVal = thiz.options[thiz.selectedIndex].text;
+  txtVal = txtVal.replace(/,/g,"");//Remove any commas in the question title because the
+  //code splits email addresses on commas and it will mess up the server code for processing
+  //the emails
+  lastChld.value = "<:" + thiz.value + ":" + txtVal + ":>";
+
+  //Set list value back to first in list
+  thId=a==='to'?'idFormFldWithEmail'+w:'idListForCC'+w;
+  zq('gid',thId).selectedIndex = 0;
+  
+  Dt_Drktr_addNewInput(lastChld);
+}
+
+window.AlanWells.addMrgFlds=function(idSrc,target) {//idSrc is the id of the list with field names
+  //target is the id of the element to inject the merge field into
+  //This function gets the merge fields to inject from a list where you can select multiple items
+  //not a drop down list- That is the difference between this and the AlanWells.injectMrgFldFromDrpDwn function
+  var cmd,currentContent,el,forBody,i,L,mergeFlds,qstnTitle;
+  forBody="";
+  mergeFlds=zq('vals',idSrc,true);
+  if (!mergeFlds) {
+    AlanWells.SendErr(undefined,' addMrgFlds: ' + idSrc + " target: " + target);
+    return;
+  }
+
+  L = mergeFlds.length;
+
+  for (i=0;i<L;i+=2){
+    qstnTitle = mergeFlds[i+1];
+    qstnTitle = qstnTitle.replace(/,/g,"");//Remove any commas in the question title because the content may get split on commas
+    forBody+=("<:" + mergeFlds[i] + ":" + qstnTitle + ":>");
+  }
+
+  el = zq('gid',target);
+  cmd = el.tagName==="DIV"?'inHtml':'val';
+
+  currentContent = zq(cmd,target);
+  if (!currentContent) {
+    currentContent = "";
+  }
+  
+  forBody = currentContent + forBody;//Get the original content of the element and add new content
+  
+  zq(cmd,target,forBody);
+};
+
+window.AlanWells.addHtmlTag=function(tagType,trgtID) {//idSrc is the id of the list with field names
+  //a is the id of the element to inject the merge field into
+  var cmd,el,tagToShow,oSets,target;
+  
+  oSets = {
+    'bold':'<strong>Replace this with text to be put in bold</strong>',
+    'undrL':'<u>Replace this with text to be underlined</u>',
+    'para':"<p>Replace this with text to be in its own paragraph</p>",
+    'title':"<h1>Put TITLE text here</h1>",
+    'newLine':'<br/>',
+    'tbl':'\n<table>\n  <tr>\n    <th>Column Heading 1</th>\n    <th>Column Heading 2</th>\n' +
+      '  </tr>\n  <tr>\n    <td>Row One Cell One</td>\n    <td>Row One Cell Two</td>\n  </tr>\n</table>',
+    'list':'\n<ul>\n  <li>Line One</li>\n  <li>Line Two</li>\n  <li>Line Three</li>\n</ul>'
+  };
+
+  if (!tagType) {
+    AlanWells.SendErr(undefined,' addHtmlTag: ' + tagType);
+    return;
+  }
+
+  tagToShow=oSets[tagType];
+    
+  target=trgtID;
+
+  el = zq('gid',target);
+  cmd = el.tagName==="DIV"?'inHtml':'val';
+
+  tagToShow = zq(cmd,target) + tagToShow;//Get original content and add new content
+  zq(cmd,target,tagToShow);
+};
+
+window.AlanWells.appendTxtToLbl = function(elmt,string,bkGrndColor) {
+try{
+  var elLabel,elOfTheNewSpan,pruntNoood,elmt_ID;
+
+  //cl('elmt: ' , elmt);
+
+  elmt.style.backgroundColor = bkGrndColor;
+  
+  elmt_ID = elmt.id;
+  //cl('elmt_ID: ' , elmt_ID);
+  
+  pruntNoood = elmt.parentNode;
+  //cl('pruntNoood: ' + pruntNoood)
+  //cl('pruntNoood.tagName: ' + pruntNoood.tagName)
+
+  elLabel = pruntNoood.querySelector("label[for='" + elmt_ID + "']");
+  //cl('elLabel: ' + elLabel)
+
+  if (elLabel) {//Every input should have a label associated with it- but
+    //the code gets the parent node- if there is no parent node you cant get the label
+    //or if the text is in a div and not a label then it cant get the label
+    //cl('elLabel.txt: ' + elLabel.textContent)
+    //cl('elLabel.for: ' + elLabel.for)
+    elLabel.innerHTML = elLabel.textContent + '<span class="savedMsg"> ' + string + '</span>';
+    
+    pruntNoood = elLabel.parentNode;//Get a different parent node
+    elOfTheNewSpan = pruntNoood.querySelector('span[class="savedMsg"]');//Get the span element that was just injected
+    
+    elOfTheNewSpan.style.backgroundColor = bkGrndColor;
+  };
+
+}catch(e) {
+  //cl('there was an error in function - AlanWells.appendTxtToLbl')
+  AlanWells.SendErr(e,' Error in function - AlanWells.appendTxtToLbl');
+}
+}
+  
+window.AlanWells.clearAllMsgs = function() {//Clear all messages by class name
+  //cl('AlanWells.hideAllMsgs ran')
+try{
+  var allErrMsgElmts,i,L,thisElmt;
+  
+  allErrMsgElmts = document.getElementsByClassName('errMsgClass')[0].querySelectorAll('DIV');
+  //cl('allErrMsgElmts: ',allErrMsgElmts)
+  L=allErrMsgElmts.length;
+  //cl('L: ',L)
+  
+  for (i=0;i<L;i++) {
+    thisElmt = allErrMsgElmts[i];
+    //cl('thisElmt: ',thisElmt)
+    if (thisElmt) {
+      thisElmt.textContent = "";
+    } else {
+      AlanWells.SendErr(undefined,' Error in function - AlanWells.clearAllMsgs can not get the element ');
+    }
+  }
+}catch(e) {
+  //cl('there was an error in function - AlanWells.hideAllMsgs')
+  AlanWells.SendErr(e,' Error in function - AlanWells.clearAllMsgs L: ' + L);
+}
+};
+
+window.AlanWells.closeBalloon = function(strId) {
+  zq('attr', strId, 'class', 'hideBalloon');
+  zq('attr', strId, 'visibility', "");//The tag may have had its visibility attribute set to visible and must be removed
+};
+
+window.AlanWells.ClsHlp=function(elmtForHlp,idOfContentElmt){
+  AlanWells.showOrHideHlp('hide',undefined,elmtForHlp,idOfContentElmt);
+};
+
+window.AlanWells.gotHlpHtml = function(theHtml) {//Inject the help HTML into the help box
+  var contentEl,helpBoxEl,thisTabEl;
+try{
+  //cl('gotHlpHtml theHtml: ',theHtml);
+  if (!theHtml) {
+    theHtml = '<button onmouseup="AlanWells.ClsHlp()">Close</button>' +
+    '<h2>No Help content was retrieved - send email to aj.addons@gmail.com</h2>' + 
+    '<p>There was an error getting the help content</p><br>' +
+    '<button onmouseup="AlanWells.ClsHlp()">Close</button>';
+  }
+  
+  //The help DIV for receiving the Help content is part of
+  //the H_Msgs HTML file - See the H_Msgs HTML file for the HTML
+  //The H_Msgs file gets injected into many other files because it is generic HTML layout
+
+  thisTabEl = AlanWells.getTabElmt();//Use the ID of the tab being shown to get the element
+  //cl('thisTabEl: ',thisTabEl);
+  
+  if (thisTabEl) {
+    contentEl = thisTabEl.querySelectorAll(".gnrkContent")[0];
+    helpBoxEl = thisTabEl.querySelectorAll(".helpElmnt")[0];
+  }
+  
+  if (!contentEl) {//There may not be any tabs in this dialog box or sidebar
+    contentEl = document.querySelectorAll(".gnrkContent")[0];
+  }
+  
+  if (!helpBoxEl) {//There may not be any tabs in this dialog box or sidebar
+    helpBoxEl = document.querySelectorAll(".helpElmnt")[0];
+  }
+  
+  //cl('contentEl: ',contentEl);
+  //cl('helpBoxEl: ',helpBoxEl);
+  //cl('window.DtaZQDrktr_elShow: ',window.DtaZQDrktr_elShow);
+  //cl('typeof window.DtaZQDrktr_elShow: ',typeof window.DtaZQDrktr_elShow);
+  
+  if (window.DtaZQDrktr_elShow) {//If a specific ID of an element was set to show then inject HTML in that
+    //cl('no window.DtaZQDrktr_elShow ran as truthy')
+    zq('inHtml',window.DtaZQDrktr_elShow,theHtml);
+    zq('show',window.DtaZQDrktr_elShow);
+  } else {
+    //cl('no window.DtaZQDrktr_elShow')
+    if (helpBoxEl) {
+      zq('inHtml',helpBoxEl,theHtml);
+      zq('show',helpBoxEl);//Show the generic help box element
+    } else {
+      AlanWells.SendErr(undefined,' Problem from function - AlanWells.gotHlpHtml - Can not get help box');
+    }
+  }
+  
+  if (window.DtaZQDrktr_elHide) {
+    zq('hide',window.DtaZQDrktr_elHide);
+  } else {
+    if (contentEl) {
+      zq('hide',contentEl);
+    } else {
+      AlanWells.SendErr(undefined,' Problem from function - AlanWells.gotHlpHtml - Can not get content Elmt');
+    }
+  }
+  
+  window.DtaZQDrktr_elShow = "";//Reset
+  window.DtaZQDrktr_elHide = "";//Reset
+  AlanWells.hideSpnr();
+}catch(e) {
+  AlanWells.SendErr(e,' Error in function - AlanWells.gotHlpHtml ');
+}
+};
+
+window.AlanWells.hideBllnTips = function() {
+  var allErrShownElmts,i,L,thisElmt;
+  
+  allErrShownElmts = document.getElementsByClassName('baseBubl');
+  //cl('allErrShownElmts: ' + allErrShownElmts)
+  L=allErrShownElmts.length;
+  //cl('L: ' + L)
+  
+  for (i=0;i<L;i++) {
+    thisElmt = allErrShownElmts[i];
+    zq('attr',thisElmt.id,'class','hideBalloon');
+  }
+};
+
+window.AlanWells.hideAllMsgs = function() {//Hide all Err messages by class name
+  //cl('AlanWells.hideAllMsgs ran')
+try{
+  var allErrMsgElmts,i,L,thisElmt;
+  
+  allErrMsgElmts = document.getElementsByClassName('errMsgClass')[0].querySelectorAll('DIV');
+  //cl('allErrMsgElmts: ' + allErrMsgElmts)
+  L=allErrMsgElmts.length;
+  //cl('L: ' + L)
+  
+  for (i=0;i<L;i++) {
+    thisElmt = allErrMsgElmts[i];
+    //cl('thisElmt: ' + thisElmt)
+    if (thisElmt) {
+      zq('hide',thisElmt);//pass the entire HTML element because there might not be an id for the element
+    } else {
+      AlanWells.SendErr(undefined,' Error in function - AlanWells.hideAllMsgs can not get the error element ');
+    }
+  }
+}catch(e) {
+  //cl('there was an error in function - AlanWells.hideAllMsgs')
+  AlanWells.SendErr(e,' Error in function - AlanWells.hideAllMsgs L: ' + L);
+}
+};
+
+window.AlanWells.hideSpnr = function(a,b) {//a is for spinner ID- b is for the Message element
+  //cl('a from hideSpnr: ' + a);
+  //cl('b: ' + b);
+  var daSpinHtml,spnrElmt;
+
+try{
+  spnrElmt = AlanWells.getThisSpinnerElmt(a);
+  //cl('spnrElmt from hideSpnr: ',spnrElmt)
+  
+  if (spnrElmt) {
+    spnrElmt.innerHTML = "";//If spinner was displayed, make sure it gets turned off
+    spnrElmt.style.display = 'none';
+    
+    window.AlanWells.spnrElmt = spnrElmt;//Put spinner Element into an object in case there is a server error the element
+    //can be retrieved and the spinner can be turned off- And by getting the element the spinner element does
+    //not need an ID
+  } else {
+    //cl('could not get any spinner element')
+    //Do not send error message because there may not be any spinners displayed
+  }
+  
+  if (b) {
+    AlanWells.hideWaitMsg(b);
+    return;
+  }
+}catch(e) {
+  AlanWells.SendErr(e,'Error in function AlanWells.hideSpnr spnr_ID ' + a);
+}
+};
+
+window.AlanWells.hideWaitMsg = function(a) {
+  if (a) {
+    zq('txt',a,"");
+    zq('hide',a);
+  }
+}
+
+window.AlanWells.okToSave_Generic = function() {//chk if save btn can be enabled
+  var contentDiv,enableSave,errBoxEl,errBoxID,onOffChkBox,onOffShell,o,onOffVal,saveBtn,thisTabEl,thisTabID;
+  /* 
+  * Do not enable or disable the Save button until the very end-  This is because this script does two things- it
+  * highlights or removes highlighting from required fields AND enables or disables the Save button-  Even if the
+  * Save button can be enabled, there are situations, where a required field needs to be highlighted-  For example,
+  * if the user changes a selection in a drop down to an invalid setting-  Then the item should be highlighted-  This
+  * is why the enable or disable of the Save button does not get done until the end-
+  * See the notes in JS_Validate to understand the logic
+  
+  * Each element that is required to have input must have a class name of mustHave - see zqinputs function
+  */
+  //cl('okToSave_Generic ran: ');
+try{
+  enableSave = false;
+  
+  thisTabID = window.idOfDivCurrentlyDisplayed;//Get the ID of the tab currently being shown
+  //cl('thisTabID: ' + thisTabID);
+  thisTabEl = zq('gid',thisTabID);//Use the ID of the tab being shown to get the element
+  //cl('thisTabEl: ' + thisTabEl);
+  
+  if (thisTabEl) {
+    errBoxEl = thisTabEl.querySelectorAll(".errorBox")[0];
+    if (errBoxEl) {
+      errBoxID = errBoxEl.id;
+    }
+    saveBtn = thisTabEl.querySelectorAll(".saveBtnClass")[0];
+    //idInnerMsgDiv = thisTabEl.querySelectorAll(".gnrkMsgToUser")[0];
+    contentDiv = thisTabEl.querySelectorAll(".gnrkContent")[0];
+    onOffShell = thisTabEl.querySelectorAll(".onOffShell")[0];//Get the outer DIV for the button
+    
+    //cl('onOffShell: ' + onOffShell);
+    //cl('saveBtn: ' + saveBtn);
+  
+    if (onOffShell) {//If the code got the element holding the ON OFF button HTML
+      onOffChkBox = onOffShell.querySelectorAll("input")[0];//Get the hidden input field for the button
+      
+      if (onOffChkBox) {
+        onOffVal = onOffChkBox.checked;//Is the ON OFF button ON or OFF- true or false
+      }
+    }
+  }
+
+  if (errBoxID) {
+    zq('hide',errBoxID);//This function runs more than any other-  use to turn off message.
+  }
+  
+  if (contentDiv) {
+    o = zq('inputs',contentDiv,'cd','["Not Set"]');//See notes for "inputs" function
+  } else {
+    AlanWells.SendErr(undefined,'No element ID for inputs');
+  }
+  //cl('o: ' + o);
+
+  if (o) {
+    //Chk if any required fields were missing
+    if (o.missReq===false) {//No required fields are missing- enable
+      enableSave=true;
+    }
+  }
+  //Even if there was an error or problem getting the "o" object do not halt the code because I want it to check if the ON OFF button is ON or OFF
+  if (!onOffVal) {//If ON OFF button is OFF then just allow the user to save whatever settings are present
+    enableSave=true;
+  }
+  //cl('o.missReq: ' + o.missReq);
+  //cl('enableSave: ' + enableSave);
+
+  if (enableSave) {
+    //cl('it got inside the IF for enableSave: ');
+    if (onOffChkBox) {//An element for the check box was retrieved
+      onOffChkBox.removeAttribute('disabled');
+    }
+    if (contentDiv) {
+      zq('reqOff',contentDiv);//Only run this once at the end
+    }
+    if (saveBtn) {
+      saveBtn.removeAttribute('disabled');//Enable the save button by removing the disable setting
+    }
+  } else {
+    if (saveBtn) {
+      saveBtn.setAttribute('disabled', 'disabled');
+    }
+  }
+}catch(e) {
+  //cl('error in okToSave_Generic: ' + e.message);
+  AlanWells.SendErr(e,'Error in function okToSave_Generic: ');
+}
+};
+
+window.AlanWells.optnSlct = function(el,a) {//makes an option in a list the shown selection 'a' is the text val
+  var elSlct,i,L,thizEl;
+try{
+  elSlct = zq('gid',el).children;
+  L = elSlct.length;
+
+  for (i=0;i<L;i++) {
+    thizEl = elSlct[i];
+    if (thizEl.textContent===a) {
+      thizEl.selected = 'true';
+      break;
+    }
+  }
+}catch(e) {
+  //cl('error in okToSave_Generic: ' + e.message);
+  AlanWells.SendErr(e,'Error in function optnSlct: ');
+}
+};
+
+window.AlanWells.SendErr = function(err,msg) {
+  var allSpinners,bigErrElmt,clientInfo,contentDiv,currntlyDisplayedElmt,eMsg,errBoxEl,finalMsg,
+  h,info,msgToPreviousDisplay,i,idOfCrrntEl,L,makeErrMsg,rdctViewEl,stack,thisSpinner,thisTabEl,thisTabID;
+try{
+  //IMPORTANT - DO NOT CALL ANY other client side functions inside of this function because 
+  //if there is an error in any of those functions then this will go into an endless loop
+  //Shut the spinner off before doing anything else
+  allSpinners = document.getElementsByClassName('spinner');//get ALL spinner elements
+  L = allSpinners.length;
+  
+  cl('L',L)
+  
+  for (i=0;i<L;i++) {
+    thisSpinner = allSpinners[i];
+    if (thisSpinner) {
+      thisSpinner.innerHTML = "";//If spinner was displayed make sure it gets turned off
+      thisSpinner.style.display = "none";
+    }
+  }
+  
+  //cl('AlanWells.SendErr err: ',err)
+  eMsg = "";
+  stack = "";
+  
+  makeErrMsg = function() {
+    if (err) {
+      //cl('tests true for err',err)
+      //cl('typeof err',typeof err)
+      if (typeof err === 'object') {
+        eMsg = '<br/>Error is: ' + err.message + "<br/><br/>";
+        stack = 'Stack: ' + err.stack;
+        //cl('eMsg',eMsg)
+      }
+    } else {
+      var madeErr = new Error();
+      stack = "Stack: " + madeErr.stack;
+    }
+    
+    if (eMsg) {
+      finalMsg = 'ERROR: <br/>' + eMsg + '<br/>msg: ' + msg + '<br/>stack: <br/>' + stack + '<br/>' + clientInfo;
+    } else {
+      finalMsg = 'ERROR: <br/>' + msg + '<br/>stack: <br/>' + stack + '<br/>' + clientInfo;
+    }
+  }
+
+  makeErrMsg();//This function does not return anything because it does not need to it sets a global variable
+  //cl('eMsg',eMsg)
+  idOfCrrntEl = window.idOfDivCurrentlyDisplayed;
+  //cl('idOfCrrntEl: ',idOfCrrntEl)
+  
+  if (!idOfCrrntEl) {
+    currntlyDisplayedElmt = document.getElementsByTagName("BODY")[0];
+    //cl('currntlyDisplayedElmt: ',currntlyDisplayedElmt)
+    if (!currntlyDisplayedElmt) {
+      currntlyDisplayedElmt = document.activeElement;
+    }
+  } else {
+    currntlyDisplayedElmt = document.getElementById(idOfCrrntEl);
+  }
+
+  //cl('currntlyDisplayedElmt 2: ',currntlyDisplayedElmt)
+
+  if (currntlyDisplayedElmt) {
+    h = currntlyDisplayedElmt.innerHTML;
+    msgToPreviousDisplay = '<div style="margin-left:12px;margin-right:12px;margin-top:12px;background-color:LightPink;padding:8px 8px 8px 8px">THERE WAS AN ERROR! <br/> ' +
+    '<br/>Email aj.addons@gmail.com' +
+    '<br>If this error persists.<br/><br/>' +
+    'An Error has been logged with the developer at: aj.addons@gmail.com  <br>' +
+    'unless you have the error reporting turned off. <br/><br/>' +
+    'Error MSG: ' + finalMsg +
+    '</div>';
+    
+    currntlyDisplayedElmt.innerHTML=msgToPreviousDisplay;
+  }
+  
+  if (h) {
+    h = h.slice(0,14);
+  } else {
+    h = "No HTML";
+  }
+  if (h) {h=h.slice(0,21);}
+  //cl('h in srvrCodeFailed: ' + h)
+  
+  info = window.infoForSrvrErr;//Add this in the function that would trigger the srvr error
+  //cl('info: ' + info)
+  
+  clientInfo = " Info: " + info + "<br/>" +
+  "Tab Displayed: " + currntlyDisplayedElmt + "<br/>" +
+  "HTML: " + h + "<br/>";
+  
+  //cl('finalMsg in SendErr: ' + finalMsg)
+  
+  thisTabID = window.idOfDivCurrentlyDisplayed;//Get the ID of the tab currently being shown
+  //cl('thisTabID in SendErr: ' + thisTabID);
+  thisTabEl = document.getElementById(thisTabID);//Use the ID of the tab being shown to get the element
+  //cl('thisTabEl in SendErr: ' + thisTabEl);
+  
+  if (thisTabEl) {
+    contentDiv = thisTabEl.querySelectorAll(".gnrkContent")[0];
+    rdctViewEl = thisTabEl.querySelectorAll(".gnrkRdctViewDiv")[0];
+    errBoxEl = thisTabEl.querySelectorAll(".errorBox")[0];
+    bigErrElmt = thisTabEl.querySelectorAll(".bigErrClass")[0];
+  }
+  
+  //cl();
+
+  if (!finalMsg) {
+    finalMsg = "There was an Error. If this is not a user error then please send an email to: aj.addons@gmail.com";
+  }
+  //cl('final message from SendErr: ' + finalMsg);
+
+  if (contentDiv) {
+    contentDiv.style.display = 'none';
+  }
+  if (bigErrElmt) {
+    bigErrElmt.innerHTML = '<br>There was an ERROR:<br>If this is not a user error<br>Please send an email to: aj.addons@gmail.com<br>' + finalMsg;
+  }
+  if (rdctViewEl) {
+    rdctViewEl.style.display = 'block';
+  }
+  if (errBoxEl) {
+    errBoxEl.style.display = 'block';
+  }
+  if (bigErrElmt) {
+    bigErrElmt.style.display = 'inline';
+  }
+  //cl('send error right befor server call')
+  finalMsg = finalMsg.replace("<br/>","\n");
+  finalMsg = finalMsg.replace("<br>","\n");
+  google.script.run.awMain(['teb39p4',{'data':finalMsg}]);
+}catch(e) {
+  window.infoForSrvrErr = "FUNCTION: AlanWells.SendErr";
+  cl('caught error in function AlanWells.SendErr')
+  cl('stack: ' + e.stack)
+  cl('message: ' + e.message)
+  
+  google.script.run
+    //Do NOT put a failure handler here because it will cause an endless loop if the server code fails
+    .awMain(['teb39p4',{'data':' ERROR in function AlanWells.SendErr: ' + e.message}]);
+}
+};
+
+window.AlanWells.showOrHideMsgInHelp = function(po) {
+try{
+  var contentElmt,elmtForHlp,errMsg,prntElmt;
+  
+  prntElmt = AlanWells.getTabElmt();
+  //cl('prntElmt ',prntElmt)
+  //cl('prntElmt.id ',prntElmt.id)
+  
+  if (prntElmt) {
+    contentElmt = prntElmt.querySelectorAll(".gnrkContent")[0];
+    elmtForHlp = prntElmt.querySelectorAll(".helpElmnt")[0];
+  } else {
+    return;//an error was already sent if applicable in the getTabElmt function
+  }
+  
+  //cl('contentElmt',contentElmt)
+  //cl('elmtForHlp',elmtForHlp)
+  //cl('po',JSON.stringify(po))
+  
+  if (po.msg) {
+    zq('inHtml',elmtForHlp,po.msg);
+    zq('show',elmtForHlp);
+  } else if (po.hide) {
+    if (elmtForHlp) {
+      zq('hide',elmtForHlp);
+    }
+  }
+}catch(e) {
+  window.infoForSrvrErr = "FUNCTION: AlanWells.showOrHideMsgInHelp";
+  //cl('caught error in function AlanWells.SendErr')
+  //cl('stack: ',e.stack)
+  //cl('stack: ',e.message)
+  
+  google.script.run
+    //Do NOT put a failure handler here because it will cause an endless loop if the server code fails
+    .awMain(['teb39p4',{'data':' ERROR in function AlanWells.showOrHideMsgInHelp: ' + e.message}]);
+}
+}
+
+window.AlanWells.showOrHideHlp = function(whichShowOrHide,fileToGet,idOfElmtForHlp,idOfMainContent,htmlContent) {
+  var contentElmt,elmtForHlp,elmtIsEmpty,fatalErr,prntElmt;
+try{
+  //cl('whichShowOrHide: ',whichShowOrHide)
+  //cl('idOfElmtForHlp: ',idOfElmtForHlp)
+  //cl('idOfMainContent: ',idOfMainContent)
+  //cl('fileToGet: ',fileToGet)
+  
+  fatalErr = function(e,msg) {
+    if (fileToGet) {
+      fileToGet = fileToGet.slice(2);
+    } else {
+      fileToGet = "No Help File Passed In";
+    }
+    AlanWells.SendErr(e,'Error showing the help - MESSAGE: ' + msg + " - " + idOfElmtForHlp + " Help for: " + fileToGet);
+    return '<div>ERROR - Send an email to aj.addons@gmail.com</div>';
+  }
+  
+  if ((!fileToGet && !htmlContent) && whichShowOrHide === 'show') {
+    return fatalErr(undefined,'No HTML file name or content');
+  }
+  
+  if (idOfMainContent) {//A parameter for the ID of the main content was passed in
+    prntElmt = document.getElementById(idOfMainContent);
+  } else {
+    prntElmt = AlanWells.getTabElmt();
+    contentElmt = prntElmt.querySelectorAll(".gnrkContent")[0];
+  }
+  //cl('prntElmt: ',prntElmt);
+  //cl('contentElmt: ',contentElmt);
+  
+  if (idOfElmtForHlp) {//A value was passed in- This test must be above the section to get the element by class if it does not exist
+    window.DtaZQDrktr_elShow = idOfElmtForHlp;
+    elmtForHlp = zq('gid',idOfElmtForHlp);
+  } else {//No parameter for idOfElmtForHlp was passed in
+    elmtForHlp = prntElmt.querySelectorAll(".helpElmnt")[0];
+  }
+  
+  //cl('elmtForHlp: ',elmtForHlp);
+  
+  if (elmtForHlp) {
+    elmtIsEmpty = elmtForHlp.innerHTML === "";
+  } else {
+    return fatalErr(undefined,'Can not get the element for displaying help: ');
+  }
+  
+  //cl('htmlContent 1813: ',htmlContent)
+  
+  if (htmlContent) {//HTML content was passed in instead of a file name for getting the HTML
+    AlanWells.gotHlpHtml(htmlContent);
+  } else if (whichShowOrHide === 'show' && elmtIsEmpty) {//the element for help content is empty
+    //cl('help content is empty')
+    window.infoForSrvrErr = "FUNCTION: AlanWells.showHlp";
+      google.script.run.withFailureHandler(AlanWells.srvrCodeFailed)
+      .withSuccessHandler(AlanWells.gotHlpHtml).awMain(['yfg',{'fileToGet':fileToGet}]);
+  } else {//Content does NOT need to be retrieved from the server
+    if (whichShowOrHide === 'show') {
+      //cl('its for SHOW')
+      zq('show',elmtForHlp);
+      zq('hide',contentElmt);
+    } else {
+      //cl('its for hiding the help')
+      zq('hide',elmtForHlp);
+      zq('show',contentElmt);
+    }
+    AlanWells.hideSpnr();
+  }
+}catch(e) {
+  //cl('error: ',e.message);
+  return fatalErr(e,'There was an error showing the Help ');
+}
+};
+
+window.AlanWells.showHlp = function(fileToGet,elmtForHlp,elmtToHide) {
+  //cl('fileToGet',fileToGet)
+  //cl('elmtForHlp',elmtForHlp)
+  //cl('elmtToHide',elmtToHide)
+  
+  AlanWells.shwSpnr();
+  AlanWells.showOrHideHlp('show',fileToGet,elmtForHlp,elmtToHide);
+};
+
+window.AlanWells.shwSpnr = function(spnr_ID,id_MsgElmt) {//Show the spinner
+  //It does not make any sense to put a spinner DIV in every tab inside of the current dialog box
+  //or sidebar-So there is only one DIV element for the spinner- There are not multiple dialog
+  //boxes open at the same time- Although you can have both a sidebar and dialog open at the same time-
+  //I do not want to need to pass an id to the function every time- So I would rather give every
+  //spinner a class name and every BODY tag in the dialog the same class name
+  //cl('AlanWells.shwSpnr ran: ' + spnr_ID + "id_MsgElmt: " + id_MsgElmt);
+  var actvEl,allDivsInChgVw,chgVwEl,daSpinHtml,spnrElmt;
+
+try{
+  spnrElmt = AlanWells.getThisSpinnerElmt(spnr_ID);//this must be either the spinner element of the tab that
+  //will eventually be displayed or a spinner element of the outermost element
+  //It makes no sense to get a spinner element of a tab that was just hidden
+  //cl('spnrElmt zero: ' + spnrElmt)
+  daSpinHtml = '<div><img src="data:image/gif;base64,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"></div>';
+  
+  if (spnrElmt) {
+    spnrElmt.style.display = 'inline';//Use the html element
+    spnrElmt.innerHTML = daSpinHtml;
+    
+    window.AlanWells.spnrElmt = spnrElmt;//Put spinner Element into an object in case there is a server error the element
+    //can be retrieved and the spinner can be turned off- And by getting the element the spinner element does
+    //not need an ID
+  } else {
+    AlanWells.SendErr(undefined,'Error in function AlanWells.shwSpnr No spinner element was found');
+  }
+
+  if (id_MsgElmt) {
+    zq('txt',id_MsgElmt,"WORKING! . . . . ");
+    zq('show',id_MsgElmt);
+  }
+}catch(e) {
+  //cl('Error - from shwSpnr: ' + e.message)
+  AlanWells.SendErr(e,'Error in function AlanWells.shwSpnr spnr_ID ' + spnr_ID);
+}
+};
+
+window.AlanWells.OpenDlg=function(f){
+try{
+  //cl('AlanWells.OpenDlg',' ran')
+  //This is part of a system to get elements
+  //by class name and not need to know the ID- must use with querySelectorAll
+  AlanWells.shwSpnr();//Do not pass any info because the spinner will be searched for from the main element
+
+  AlanWells.hideBothHelpAndErr();//hides error elements and help elements by class name
+  
+  window.infoForSrvrErr = "FUNCTION: AlanWells.OpenDlg";
+  
+  //cl('f: ',f)
+  
+  google.script.run
+    .withFailureHandler(AlanWells.srvrCodeFailed)
+    .withSuccessHandler(AlanWells.dlgIsOpen).awMain(['y76',{'dlgKey':f}]);
+
+}catch(e) {
+  AlanWells.SendErr(e,' Error in function - AlanWells.OpenDlg f: ' + f);
+}
+};
+window.AlanWells.dlgIsOpen=function(){
+  AlanWells.hideSpnr();
+//google.script.host.close();
+};
+
+window.AlanWells.injectFldrListHtml = function(r) {
+  //cl('r', r)
+
+  $aWellsSets.slctElForFldrs.innerHTML = r;
+  AlanWells.hideSpnr();
+}
+
+window.AlanWells.saveInput = function(po) {//This is a generic SAVE function
+  //Nothing needs to be passed into this function-The tab number does not need to be passed into
+  //this function because all the ID names already have the tab number in them and those
+  //ID names are what makes the setting get saved correctly
+  /*This function may need to retrieve an object with information
+   2cd param is for a table
+  */
+  //IMPORTANT IMPORTANT The tab number MUST be put into the data- MUST- But I want to avoid the
+  //need for passing in the tab number- so you must get the tab number from the window object
+  //window.$aWellsSets.w
+  //This is set from the navPgs function- Also- it must be set when the page is loaded
+    
+  var allTablesByCls,allTblElmtIDs,arrIDs,elSaveBtn,fncCode,fncToRunOnSuccess,i,key,L,
+  o,objOfSettings,prntElmtsOfInputsW_noID,tabContentEl,tabSettings,thisID;
+try{
+  AlanWells.shwSpnr();  
+  
+  objOfSettings = AlanWells.getGnrkEmts();//Get an object of generic elements and settings
+  //cl('objOfSettings: ' + JSON.stringify(objOfSettings));
+  
+  if (!objOfSettings) {
+    AlanWells.SendErr(undefined,'The variable named objOfSettings is undefined ');
+    return;
+  }
+  
+  tabContentEl = objOfSettings.theTabElmt;//The the HTML element object of the currently displayed tag
+  //cl('tabContentEl: ' + tabContentEl)
+
+  fncToRunOnSuccess = objOfSettings.fncToRunOnSaveSuccess;//client side function to run
+  window.$aWellsSets.fncToRunOnSaveSuccess = fncToRunOnSuccess;//Put into window for retrieval when success fnc runs
+  //cl('fncToRunOnSuccess: ' + fncToRunOnSuccess);
+  prntElmtsOfInputsW_noID = objOfSettings.prntElmtsOfInputsW_noID;
+  elSaveBtn = objOfSettings.saveBtnElmt;//Get the outer DIV for the ON-OFF button
+  tabSettings = objOfSettings.tabSettingsObj;//Get
+  
+  //cl('elSaveBtn.length: ' + elSaveBtn.length);
+  //cl('elSaveBtn .id: ' + elSaveBtn.id);
+  
+  /*if (elSaveBtn) {
+    elSaveBtn.setAttribute('disabled', 'disabled')
+  }
+  */
+  //cl('disabled the save button');
+  //Note that zq(inputs) does not record values from inputs if the input tag has no id attribute-but there is a way to get inputs with no ID
+  o = zq('inputs',tabContentEl);
+  //cl('o after zq inputs: ' + JSON.stringify(o));
+  
+  if (!o) {//The object o did not get defined because there were no inputs or something went wrong
+    o = {};
+  }
+  if (window.$aWellsSets.w) {
+    o.w = window.$aWellsSets.w;
+  } else {
+    o.w = "";
+  }
+  
+  allTablesByCls = tabContentEl.getElementsByClassName('tblContainer');//get all the tables containing el by class name
+  L = allTablesByCls.length;
+  //cl('L allTablesByCls: ' + L)
+  allTblElmtIDs = [];//The data must be associated with an element ID in order for the data to be displayed
+  //back to the user- So even if you get the element by class name the element must have an ID to associate
+  //with the data-  Otherwise you would never know what data goes where when you need to re-display it
+  for (i=0;i<L;i++) {
+    //cl('allTablesByCls[i].id: ' + allTablesByCls[i].id)
+    allTblElmtIDs.push(allTablesByCls[i].id);//Put all the parent table element IDs into an array
+  }
+
+  //cl('allTblElmtIDs: ' + allTblElmtIDs);
+  
+  if (allTblElmtIDs) {//If there are any tables to get data from
+    L = allTblElmtIDs.length;//How many elements in the array of table IDs
+    //cl('L allTblElmtIDs: ' + L);
+    
+    for (i=0;i<L;i++) {
+      //cl('allTblElmtIDs[i]: ' + allTblElmtIDs[i]);
+      o[allTblElmtIDs[i]]=zqTbl.getTableData(allTblElmtIDs[i]);  //Get table inputs
+    }
+  }
+  //cl('prntElmtsOfInputsW_noID: ' + prntElmtsOfInputsW_noID);
+  
+  if (prntElmtsOfInputsW_noID) {//If there are inputs fields with no IDs because the user adds or deletes inputs and it is never
+    //known how many input fields there will be in the set - The parent element of the inputs with no ID
+    //must have a class name of inputsWithNoID
+    L = prntElmtsOfInputsW_noID.length;
+    
+    for (i=0;i<L;i++) {
+      thisID = prntElmtsOfInputsW_noID[i].id;//The inputs do not need an ID- but the parent needs an
+      //id so that there is a key name to associate with the data
+      //cl('thisID: ' + thisID)
+      o[thisID] = getInputsWithNoID(thisID);//Get the parent element and get all inputs
+    }
+  }
+
+  if (tabSettings) {//If tab settings where found
+    fncCode = tabSettings.fncCode;//A different code than the default
+    //cl('fncCode from tab setings: '+ fncCode);
+  }
+  
+  if (!fncCode) {
+    fncCode = 'sig';//default code for saving settings so that the settings object does not need a property
+    //cl('fncCode: '+ fncCode);
+  }
+  
+  //cl('window.$aWellsSets.w: '+ window.$aWellsSets.w);
+  
+  window.infoForSrvrErr = "FUNCTION: AlanWells.saveInput";
+
+  if (po) {
+    if (po.justGetAnswers) {//Do NOT save the data from this point- return the data to the calling function
+      return o;
+    }
+    //cl('po.idToExclude',po.idToExclude)
+    //cl('po.idToExclude + o.w',po.idToExclude + o.w)
+  
+    if (po.idToExclude) {
+      delete o[po.idToExclude + o.w];
+      window.$aWellsSets.specialSaveMsg = po.specialMsg;
+    }
+  }
+
+  o = JSON.stringify(o);//Must be sent to server as string
+  //cl('o with table data: ',o);
+  
+  google.script.run
+    .withFailureHandler(AlanWells.srvrCodeFailed)
+    .withSuccessHandler(AlanWells.inputSaved).awMain([fncCode,{'data':o}]);
+
+}catch(e) {
+  AlanWells.SendErr(e,' Error in function - saveInput');
+};
+};
+
+window.AlanWells.inputSaved = function(rtrn) {//The rtrn can be an object that has either or both
+  //a property of data and error- OR rtrn can just be anything-see notes below for more info
+  var data,objErr,errMsg,nextFncToRun;
+try{
+  //cl('rtrn inputSaved: ' + rtrn);
+  //cl('inputSaved typeof rtrn: ' + typeof rtrn);
+  if (typeof rtrn === 'string') {
+    if (rtrn.indexOf("{") === 0) {//It is a stringified object
+      rtrn = JSON.parse(rtrn);//parse the string into an object
+      
+      data = rtrn.data;//There may sometimes be an inner object of data but not always
+      objErr = rtrn.error;
+      if (objErr) {//If there was an inner object with an error message
+        errMsg = objErr.errMsg;//Sometimes there is an inner object of error but not always
+      }
+    }
+  }
+
+  if (errMsg) {
+    AlanWells.tgglReducedView('show',errMsg);//Run function to show the reduced view and hide content view
+  } else {
+    if (window.$aWellsSets.specialSaveMsg) {
+      AlanWells.tgglReducedView('show',undefined,window.$aWellsSets.specialSaveMsg);//Run function to show the reduced view and hide content view
+      window.$aWellsSets.specialSaveMsg = "";//reset
+    } else {
+      AlanWells.tgglReducedView('show');//Run function to show the reduced view and hide content view
+    }
+  }
+  AlanWells.hideSpnr();//Hide the spinner
+  
+  nextFncToRun = window.$aWellsSets.fncToRunOnSaveSuccess;//Get the fnc to run if there is any
+  //cl('nextFncToRun: ' + nextFncToRun);
+  if (nextFncToRun) {
+    if (data) {
+      new Function("a", nextFncToRun+"(a)").call("",data);
+    } else {
+      new Function("a", nextFncToRun+"(a)").call("",rtrn);
+    }
+  }
+  window.$aWellsSets.fncToRunOnSaveSuccess = "";//reset or other function may erroneously run a function
+  
+  AlanWells.showOrHideMsgInHelp({"hide":true});//hide the help DIV - I might put a message in the Help DIV
+  //as an alternative to puttting it in the reduced view section
+}catch(e) {
+  //cl('Error AlanWells.inputSaved: ' + e.message);
+  AlanWells.SendErr(e,' Error in function - AlanWells.inputSaved');
+};
+};
+
+window.AlanWells.getGnrkEmts = function() {//Get elements with generic class names
+  var bigErrElmt,contentDiv,errBoxEl,errBoxID,innrMsgEl,o,onOffChkBox,onOffShell,onOffVal,prntElsOfInputsW_noID,
+  rdctViewEl,saveBtn,tabSettingsObj,tabSetsString,thisTabEl,thisTabID,tabSettingsEl;
+try{
+  o = {};
+  
+  thisTabID = window.idOfDivCurrentlyDisplayed;//Get the ID of the tab currently being shown
+  //cl('thisTabID in getGnrkEmts: ', thisTabID);
+  if (thisTabID) {
+    thisTabEl = document.getElementById(thisTabID);//Use the ID of the tab being shown to get the element
+    //cl('thisTabEl in getGnrkEmts: ',thisTabEl);
+  } else {
+    thisTabEl = document.getElementsByTagName('body')[0];
+  }
+  
+  //cl('thisTabEl in getGnrkEmts: ',thisTabEl);
+  
+  if (!thisTabEl) {
+    AlanWells.SendErr(e,' Error in function - AlanWells.getGnrkEmts.  Can not get main parent element.');
+    return;
+  }
+  
+  if (thisTabEl) {
+    contentDiv = thisTabEl.querySelectorAll(".gnrkContent")[0];
+    rdctViewEl = thisTabEl.querySelectorAll(".gnrkRdctViewDiv")[0];
+    errBoxEl = thisTabEl.querySelectorAll(".errorBox")[0];
+    
+    if (errBoxEl) {
+      //cl('there is an','errBoxEl')
+      errBoxID = errBoxEl.id;
+    }
+    bigErrElmt = thisTabEl.querySelectorAll(".bigErrClass")[0];
+    innrMsgEl = thisTabEl.querySelectorAll(".gnrkMsgToUser")[0];
+    saveBtn = thisTabEl.querySelectorAll(".saveBtnClass")[0];
+    onOffShell = thisTabEl.querySelectorAll(".onOffShell")[0];//Get the outer DIV for the button
+    //cl('onOffShell: ',onOffShell);
+    tabSettingsEl = thisTabEl.querySelectorAll(".tabSettingsElmt")[0];//Get the content out of a DIV that is a string object
+
+    //cl('tabSettingsEl: ',tabSettingsEl);
+    if (tabSettingsEl) {
+      tabSetsString = tabSettingsEl.textContent;
+      tabSetsString = tabSetsString.trim();
+      //cl('tabSetsString[1]: ',tabSetsString[1]);
+      //cl('tabSetsString: ',tabSetsString);
+      //cl('typeof tabSetsString: ',typeof tabSetsString);
+      //Make sure that there are no single quotes in the object
+      try{
+        tabSettingsObj = JSON.parse(tabSetsString);
+      }catch(e) {
+        AlanWells.SendErr(e,' There is something wrong in the settings JSON for id: ' + thisTabID);
+        //dont quit - maybe the code will continue
+      }
+    }
+    
+    prntElsOfInputsW_noID = thisTabEl.querySelectorAll(".inputsWithNoID");//Get all parent elements that have inputs that need to have their values saved
+    
+    if (onOffShell) {//If the code got the element holding the ON OFF button HTML
+      onOffChkBox = onOffShell.querySelectorAll("input")[0];//Get the hidden input field for the button
+      
+      if (onOffChkBox) {
+        onOffVal = onOffChkBox.checked;//Is the ON OFF button ON or OFF- true or false
+      }
+    }
+  }
+  
+  //cl('it got to here',o);
+  
+  o.rdctViewElmt = rdctViewEl;
+  o.theTabElmt = thisTabEl;
+  o.contentElmt = contentDiv;
+  o.saveBtnElmt = saveBtn;
+  o.bigErrElmt = bigErrElmt;
+  o.errBoxElmt = errBoxEl;
+  o.innrMsgEl = innrMsgEl;
+  if (onOffChkBox) {//There may not be an ON/OFF button in every tab-page-dialog box
+    o.idOnOffBtn = onOffChkBox.id;
+  }
+  o.onOffStatus = onOffVal;
+  o.prntElmtsOfInputsW_noID = prntElsOfInputsW_noID;
+  
+  //cl('tabSettingsObj',tabSettingsObj);
+  
+  if (tabSettingsObj) {
+    o.tabSettingsObj = tabSettingsObj;
+    o.fncToRunOnSaveSuccess = tabSettingsObj.fncToRunOnSaveSuccess;
+  }
+  
+  //cl('o getGnrkEmts: ',JSON.stringify(o))
+  return o;
+}catch(e) {
+  //cl('Error AlanWells.getGnrkEmts: ', e.message);
+  //cl('stack',e.stack)
+  AlanWells.SendErr(e,' Error in function - AlanWells.getGnrkEmts');
+};
+}
+
+window.AlanWells.TglBtnAndElmt = function(thiz,btnTxtOpen,btnTxtHidden,idOfElmtToTggl,classNameOfElmtToTggl) {
+  var elToShowOrHide,pahrunt;
+  
+  //cl('btnEl: ' + btnEl);
+  //cl('btnTxtOpen: ' + btnTxtOpen);
+  //cl('btnTxtHidden: ' + btnTxtHidden);
+  //cl('idOfElmtToTggl: ' + idOfElmtToTggl);
+  //NOTES Pass in the button element instead of the button ID because that way the button does not
+  //need to have an ID
+  if (thiz) {
+    zq('tggltxt',thiz,btnTxtOpen,btnTxtHidden);
+  } else {
+    AlanWells.SendErr(undefined,'Error from function: TglBtnAndElmt There is no button element.');
+  }
+  
+  if (classNameOfElmtToTggl) {
+    pahrunt = thiz.parentNode;
+    //cl('pahrunt.class: ',pahrunt.className);
+    elToShowOrHide = pahrunt.getElementsByClassName(classNameOfElmtToTggl)[0];
+    zq('tgglshow',elToShowOrHide);
+  } else {
+    zq('tgglshow',idOfElmtToTggl);
+  }  
+};
+    
+window.AlanWells.tgglReducedView = function(po_or_hide_Show_setting,errMsg,customMsg,bgClrBasicMsg,isPendingMsg) {
+  /* Settings
+   * po_or_hide_Show_setting - show is to put the content into reduced view with main content hidden 
+   * isPendingMsg - true or false
+   * To see an example of the reduced view section search for the class gnrkRdctViewDiv
+  */
+  var baseMsg,bgColor,bigErrElmt,closeDlg,completeMsg,confirmOnOff,contentDivElmt,spanElmtOfTab,errBoxEl,hideOrShow,
+  i,innerMsgElmt,idOnOff,izOnOrOff,
+      objNameForSettings,objOfSettings,onOffChkBox,onOffShell,rductVwDiv,refresh,thisTabEl,thisTabID,whatTab;
+try{
+  
+  if (typeof po_or_hide_Show_setting === 'object') {
+    hideOrShow = po_or_hide_Show_setting.hideOrShow;
+    closeDlg = po_or_hide_Show_setting.closeDlg;
+  } else {
+    hideOrShow = po_or_hide_Show_setting;
+  }
+  
+  if (hideOrShow === 'hide') {//You need to check this to see if it is really needed
+    AlanWells.hideBothHelpAndErr();//Hide error elements and help elements by class name
+  }
+  
+  objOfSettings = AlanWells.getGnrkEmts();//Get an object of generic elements and settings
+  //cl('objOfSettings', objOfSettings)
+  
+  errBoxEl = objOfSettings.errBoxElmt;
+  bigErrElmt = objOfSettings.bigErrElmt;
+  innerMsgElmt = objOfSettings.innrMsgEl;
+  contentDivElmt = objOfSettings.contentElmt;
+  rductVwDiv = objOfSettings.rdctViewElmt;
+  idOnOff = objOfSettings.idOnOffBtn;
+  izOnOrOff = objOfSettings.onOffStatus;
+  //cl('errBoxEl: ' ,errBoxEl)
+  //cl('bigErrElmt: ' ,bigErrElmt)
+  //cl('innerMsgElmt: ' ,innerMsgElmt)
+  //cl('contentDivElmt: ',contentDivElmt)
+  //cl('rductVwDiv: ' ,rductVwDiv)
+  //cl('idOnOff: ' ,idOnOff)
+  //cl('izOnOrOff: ' ,izOnOrOff)
+  
+  if (!contentDivElmt || !rductVwDiv) {//An element was successfully retrieved
+    AlanWells.SendErr(undefined,'Error from function: tgglReducedView. Failed to get HTML elements.');
+    return;
+  }
+  
+  zq('hide',bigErrElmt);//This should be hidden unless there is an error message to display
+  //And if there is an error message to display that is done by calling the AlanWells.showErrMsg function
+  
+  if (izOnOrOff===true) {//ONLY state that the feature is ON if the value is true
+    confirmOnOff = 'This Feature is ON';
+    bgColor = '#6aa74f';//green
+  } else if (izOnOrOff===false) {//ONLY state that the feature is OFF is the value is false
+    confirmOnOff = 'This Feature is OFF';
+    bgColor = '#de6666';//light red
+  } else if (isPendingMsg) {//ONLY state that the feature is OFF is the value is false
+    bgColor = '#fdd766';//light yellow 1
+  } else {
+    confirmOnOff = undefined;//It can not be determine if the feature is ON or OFF- or there
+    //is no ON OFF button at all
+    //cl('izOnOrOff is not true or fals: ' + izOnOrOff)
+    
+    if (!idOnOff) {//There is no id for an ON OFF button -  so there may not be an ON OFF button
+      bgColor = '#6aa74f';//green
+    } else {
+      bgColor = '#de6666';//light red - There is an id but the code did not get the status
+    }
+  }
+  //cl('bgColor before check: ',bgColor)
+  if (customMsg) {
+    customMsg = customMsg + "<br><br>";
+  } else {
+    customMsg = "";
+  }
+  
+  if (bgClrBasicMsg) {
+    bgColor = bgClrBasicMsg;//Custom background color
+  }
+  
+  baseMsg = "";//Set to default of empty string because sometimes this will not get a string
+  
+  if (!errMsg && !customMsg) {
+    baseMsg = 'The settings were saved. ';
+  } else if (closeDlg) {
+    baseMsg = "Because there was an error please close the dialog box or sidebar " +
+    "and then open it back up to check whether the settings were saved";
+  }
+  //cl('bgColor AFTER check: ',bgColor)
+  //cl('isPendingMsg: ',isPendingMsg)
+  
+  if (confirmOnOff) {
+    //cl('isPendingMsg: ',isPendingMsg)
+    if (isPendingMsg) {
+      //cl('tested as true',isPendingMsg)
+      completeMsg = customMsg;
+    } else {
+      completeMsg = customMsg + baseMsg + "<br><br>" + confirmOnOff;
+    }
+  } else {
+    if (isPendingMsg) {
+      completeMsg = customMsg;
+    } else {
+      completeMsg = customMsg + baseMsg;
+    }
+  }
+  
+  //cl('completeMsg: ',completeMsg)
+  
+  //cl('errMsg: ',errMsg);
+  if (errMsg) {//There was a server error but it was handled and a return sent back
+    try{
+    AlanWells.showErrMsg(errMsg);
+    }catch(e) {}//This is just here to prevent the code from dying if there is a problem
+    
+    //cl('errBoxEl: ' + errBoxEl);
+    if (errBoxEl) {
+      if (hideOrShow === 'show') {
+        zq('show',errBoxEl);//
+      } else {
+        zq('hide',errBoxEl);//
+      }
+    }
+  }
+  
+  //cl('innerMsgElmt: ',innerMsgElmt);
+  
+  //cl('hideOrShow: ',hideOrShow);
+  for (i=0;i<1;i++) {//Just run once- There is nothing to loop through-loop is for the break if problem
+    if (!innerMsgElmt) {
+      AlanWells.SendErr(undefined,'There is no innerMsgElmt in tgglReducedView - ID of ON/OFF: ' + idOnOff);
+      break;
+    }
+    if (!errBoxEl) {
+      AlanWells.SendErr(undefined,'There is no errBoxEl in tgglReducedView - ID of ON/OFF: ' + idOnOff);
+      break;
+    }
+    
+    if (hideOrShow === 'show') {
+      zq('bgColor',innerMsgElmt,bgColor);//set background color or message to be displayed
+      innerMsgElmt.innerHTML = completeMsg;
+      zq('show',innerMsgElmt);
+      zq('show',errBoxEl);
+    } else {
+      innerMsgElmt.innerHTML = "";
+      zq('hide',innerMsgElmt);//
+    }
+  }
+  
+  //cl('contentDivElmt: ',contentDivElmt);
+  if (hideOrShow === 'show') {
+    zq('hide',contentDivElmt);//Hide the main content
+  } else {
+    zq('show',contentDivElmt);//Show the main content
+  }
+  
+  //cl('rductVwDiv: ' + rductVwDiv);
+  if (hideOrShow === 'show') {
+    zq('show',rductVwDiv);//Show the reduced view DIV
+  } else {
+    zq('hide',rductVwDiv);//Hide
+  }
+
+  refresh = $aWellsSets.refreshOnRemoveRdctVw;
+  //cl('refresh',refresh)
+  
+  if (refresh && hideOrShow === 'hide') {//Refresh the current tab IF the reduced view is being REMOVED
+  //and the content is to be redisplayed - do not load a different tab
+
+    var tabEl = document.getElementsByClassName('DD_TabsFancy_Selected')[0];//The currently selected tab
+    //cl('tabEl',tabEl)
+    
+    var childEl = tabEl.children[0];//The span element with the onmouseup event attribute in it
+    
+    var onMouseUpArgs = childEl.onmouseup;//This is just for testing
+    //cl('onMouseUpArgs',onMouseUpArgs)
+    
+    $aWellsSets.refreshOnRemoveRdctVw = false;//reset
+    
+    childEl.onmouseup.apply(childEl);//trigger the onmouse up code to run which loads the page
+
+    return;//quit - the tab was reloaded
+  }
+}catch(e) {
+  //cl('there was an error in tgglReducedView: ' + e.message)
+  AlanWells.SendErr(e,'Error from function: tgglReducedView ');
+}
+};
+
+window.getInputsWithNoID=function(id) {//The inputs do not have an ID but the containing elmt id is used
+//The id that is passed in is for the PARENT element
+//with the input tags inside of it
+  var allI,c,i,L,v;
+try{
+  allI = zq('byTag',id,'input');
+
+  L = allI.length;
+  c="";
+  for (i=0;i<L;i++) {
+    v=allI[i].value;
+    if (v){
+      c=c===""?v:c+"`z^q"+v;//it is unlikely that there will be the combination of `z^q
+    }
+  }
+  return c;
+}catch(e) {
+  AlanWells.SendErr(e,'Error from function: getInputsWithNoID: id: ' + id);
+}
+};
+
+window.AlanWells.save1Settng = function(w,thiz,settingType) {
+try{
+  var inputType,v,typeOfEl;
+  //cl('w: ', w);
+  //cl('thiz: ',thiz);
+  //cl('settingType: ', settingType);
+
+  typeOfEl = thiz.tagName;
+  //cl('typeOfEl: ',typeOfEl);
+
+  if (typeOfEl === "INPUT") {
+    inputType = thiz.type;
+    //cl('inputType',inputType)
+    if (inputType === 'checkbox') {
+      v = thiz.checked;
+    } else {
+      v = thiz.value;
+    }
+  } else {
+    v = thiz.value;
+  }
+  
+  //cl('v: ',v);
+  //cl('!window.$aWellsSets.elmtUsed: ',!window.$aWellsSets.elmtUsed);
+  
+  if (!window.$aWellsSets.elmtUsed) {
+    window.$aWellsSets.elmtUsed = [];
+  }
+  
+  window.$aWellsSets.elmtUsed.push(thiz);
+  window.$aWellsSets.whatDone = w;
+
+  AlanWells.shwSpnr();
+  
+  window.infoForSrvrErr = "function: AlanWells.save1Settng";
+  
+  google.script.run
+    .withFailureHandler(AlanWells.srvrCodeFailed)
+    .withSuccessHandler(AlanWells.oneSettngSaved).awMain(["poj*76%4#$$%%^&*",{"w":w,"v":v,"settingType":settingType}]);
+
+}catch(e) {
+  AlanWells.SendErr(e,'Error from function: save1Settng: ');
+}
+};
+
+window.AlanWells.oneSettngSaved = function(rtrn) {
+try{
+  var el,elLabel,elSavedMsg,daid,dummy,i,L,pruntNoood,typeOfEl,thisElmt;
+  
+  dummy = [];
+  el = window.$aWellsSets.elmtUsed.concat(dummy);//Get settings immediately- this is time sensitive
+  //cl('el: ' , el);
+  //cl('el.length: ' , el.length);
+  
+  window.$aWellsSets.elmtUsed.splice(0,el.length);//Immediately remove elements from the array to avoid duplicate processing
+  
+  //cl('el: ' , el);
+  L = el.length;
+  
+  for (i=0;i<L;i++) {
+    //cl('i: ' , i);
+
+    thisElmt = el[0];//Always get the first element- As each element is processed the first element
+    //in the array is deleted-  This function can get called multiple times in rapid succession if
+    //the user quickly updates multiple settings-  The way that JavaScript works means that the array
+    //needs to get processesed this way
+    //cl('thisElmt: ', thisElmt);
+    if (!thisElmt) {break};
+    
+    el.shift();//Remove the first element emediately after getting it so it is not processed multiple times
+
+    daid = thisElmt.id;
+    pruntNoood;
+  
+    pruntNoood = thisElmt.parentNode;
+    //cl('pruntNoood: ' + pruntNoood)
+    //cl('pruntNoood.id: ' + pruntNoood.tagName)
+
+    elLabel = pruntNoood.querySelector("label[for='" + daid + "']");
+    //cl('elLabel: ' + elLabel)
+
+    if (thisElmt.tagName !== "SELECT") {
+      thisElmt.style.backgroundColor = 'lightgreen';
+    };
+
+    if (elLabel) {//Every input should have a label associated with it- but
+    //the code gets the parent node- if there is no parent node you cant get the label
+    //or it the text is in a div and not a label then it cant get the label
+      //cl('elLabel.txt: ' + elLabel.textContent)
+      //cl('elLabel.for: ' + elLabel.for)
+      elLabel.innerHTML = elLabel.textContent + '<span class="savedMsg"> SAVED!</span>';
+      
+      pruntNoood = thisElmt.parentNode;
+      elSavedMsg = pruntNoood.querySelector('span[class="savedMsg"]');
+      
+      elSavedMsg.style.backgroundColor = 'lightgreen';
+      //cl('elSavedMsg: ' + elSavedMsg)
+    };
+  };
+
+  AlanWells.hideSpnr();
+}catch(e) {
+  AlanWells.SendErr(e,'Error from function: oneSettngSaved: ');
+}
+}
+
+window.AlanWells.resetRadioBtns = function(nameUsedOnRadios) {//All radio buttons must have a name attribute
+  var elmts,i,L,thisEl;
+  
+  elmts = document.getElementsByName(nameUsedOnRadios);
+  
+  L = elmts.length;//Number of radio buttons
+  
+  for (i=0;i<L;i++) {
+    thisEl = elmts[i];
+    thisEl.checked = false;
+  }
+}
+
+window.AlanWells.serverCodeCompleted = function(rtrn) {//The rtrn can be an object that has either or both
+  //a property of data and error- OR rtrn can just be anything-see notes below for more info
+  var data,objErr,errMsg;
+try{
+  //cl('rtrn inputSaved: ' + rtrn);
+  //cl('inputSaved typeof rtrn: ' + typeof rtrn);
+  if (typeof rtrn === 'string') {
+    if (rtrn.indexOf("{") === 0) {//It is a stringified object
+      rtrn = JSON.parse(rtrn);//parse the string into an object
+      
+      data = rtrn.data;//There may sometimes be an inner object of data but not always
+      objErr = rtrn.error;
+      if (objErr) {//If there was an inner object with an error message
+        errMsg = objErr.errMsg;//Sometimes there is an inner object of error but not always
+      }
+    }
+  }
+
+  AlanWells.tgglReducedView('show',undefined,'The server code completed');//Run function to show the reduced view and hide content view
+  
+  AlanWells.hideSpnr();//Hide the spinner
+
+}catch(e) {
+  //cl('Error AlanWells.inputSaved: ' + e.message);
+  AlanWells.SendErr(e,' Error in function - AlanWells.serverCodeCompleted');
+};
+};
+
+window.AlanWells.showErrMsg = function(message,showMsgToEmailDev) {
+  var allSpinners,bigErrElmt,errBoxEl,i,L,
+  objErrMsgs,objOfElmts,rdctVw,thisSpinner,thisTabEl,thisTabID;
+  //cl('AlanWells.showErrMsg ran - message: ' + message)
+try{  
+  //IMPORTANT - DO NOT CALL ANY other client side functions inside of this function because 
+  //if there is an error in any of those functions then this will go into an endless loop
+  //Shut the spinner off before doing anything else
+  allSpinners = document.getElementsByClassName('spinner');//get ALL spinner elements
+  L = allSpinners.length;
+  
+  for (i=0;i<L;i++) {
+    thisSpinner = allSpinners[i];
+    if (thisSpinner) {
+      thisSpinner.innerHTML = "";//If spinner was displayed make sure it gets turned off
+      thisSpinner.style.display = "none";
+    }
+  }
+  
+  thisTabID = window.idOfDivCurrentlyDisplayed;//Get the ID of the tab currently being shown
+  //cl('thisTabID in getGnrkEmts: ',thisTabID);
+  if (thisTabID) {
+    thisTabEl = document.getElementById(thisTabID);//Use the ID of the tab being shown to get the element
+    //cl('thisTabEl in getGnrkEmts: ',thisTabEl);
+  } else {
+    thisTabEl = document.getElementsByTagName('body')[0];
+  }
+    
+  if (thisTabEl) {
+    errBoxEl = thisTabEl.querySelectorAll(".errorBox")[0];
+    bigErrElmt = thisTabEl.querySelectorAll(".bigErrClass")[0];
+    rdctVw = thisTabEl.querySelectorAll(".gnrkRdctViewDiv")[0];
+  }
+
+  //cl('errBoxEl: ',errBoxEl);
+  //cl('bigErrElmt: ',bigErrElmt);
+  
+  if (!message) {
+    message = "There was an Error.";
+  }
+  
+  if (showMsgToEmailDev) {
+    message = message + '<br>Please send an email to: aj.addons@gmail.com';
+  }
+  
+  //cl('message from showErrMsg: ',message);
+  if (message) {
+    if (errBoxEl) {
+      errBoxEl.style.display = 'inline-block';
+    }
+    if (bigErrElmt) {
+      bigErrElmt.innerHTML = message;
+      bigErrElmt.style.color = "red";
+      bigErrElmt.style.display = 'inline-block';
+      bigErrElmt.style.fontSize = 'large';
+    }
+  }
+
+  if (rdctVw) {//This may be redundant but it MUST be present in case the reduced view was not
+    //shown in some other code
+    rdctVw.style.display = "block";
+  }
+  //cl('this is the end of the AlanWells.showErrMsg function')
+}catch(e) {
+  //cl('there was a caught error in AlanWells.showErrMsg function: ' + e.message)
+  //Do NOT call a sendErr function from here it could go into an endless loop
+  google.script.run//Do NOT put a failure handler here because it will cause an endless loop if the server code fails
+    .awMain(['teb39p4',{'data':' ERROR: ' + e.message}]);
+};
+};
+
+window.hintHlpTggle = function(thiz) {
+  var elToShowOrHide,pahrunt;
+  
+  pahrunt = thiz.parentNode;
+  //cl('pahrunt.class: ',pahrunt.className);
+  
+  elToShowOrHide = pahrunt.getElementsByClassName("helpHint")[0];
+  
+  //cl('elToShowOrHide.length: ',elToShowOrHide.length);
+  //cl('elToShowOrHide[0].className: ',elToShowOrHide[0].className);
+  
+  zq('tggltxt',thiz,'Show Hint','Close Hint');
+  zq('tgglshow',elToShowOrHide);
+}
+
+window.cl = function(a,b) {
+  console.log(a + ": " + b);
+}
+</script>

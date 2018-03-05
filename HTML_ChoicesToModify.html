@@ -1,0 +1,48 @@
+<div id="idHowToModifyFile">
+  <br/>
+  <br/>
+  <input type="checkbox" id="idRemoveLogger">Remove Logger_log lines from GS Code?
+  <br/>
+  <input type="checkbox" id="idDletLead">Remove leading spaces from lines in GS Code?
+  <br/>
+  <input type="checkbox" id="idDletTrail">Remove trailing spaces from lines in GS Code?
+  <br/>
+  <input type="checkbox" id="idRemoveComments">Remove Comments from GS Code?
+  <br/>
+  <input type="checkbox" id="idLinesBetweenGS">Remove all Empty Lines from GS Code?
+  <br/>
+  <input type="checkbox" id="idDletSpaces">Remove unneeded spaces in GS code before overwrite?
+  <br/>
+  <input type="checkbox" id="idConsolidateEnd">Consolidate Block Endings in GS code before overwrite?
+
+  <h4>NOTE: None of the above options changes the source file code</h4>
+    
+  <input type="checkbox" id="idExportToTxt">Export final content to text file (Will be in your Root Google Drive)
+  <br/>
+  <br/>
+  <input type="radio" name="whichTypes" id="idBothFiles">Export both GS and html files
+    <br/>
+  <input type="radio" name="whichTypes" id="idExportGS_Files">Export only GS files
+    <br/>
+  <input type="radio" name="whichTypes" id="idExportHtmlFiles">Export only html files
+    <br/>
+    
+    
+  <h3>Which file type to overwrite</h3>
+  
+  <input type="radio" name="whatToProcess" id="idOverWriteBoth">Process both GS and html files
+    <br/>
+  <input type="radio" name="whatToProcess" id="idOverWriteGS">Process only GS files
+    <br/>
+  <input type="radio" name="whatToProcess" id="idOverWriteHtml">Process only html files
+    <br/>
+  <br/>
+  
+
+  
+  <br/>
+  <input class="create" type="button" value="Overwrite" onmouseup="AlanWells_resetErr();callSrvrToUpdate();">
+    
+</div>
+  
+  

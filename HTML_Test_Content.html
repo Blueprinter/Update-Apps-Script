@@ -1,0 +1,141 @@
+function thisRzpnzAnswers(theResponse,items,theDocPrps,colPositionsObj,ndxOfTempRowData,responseID) {
+  var allValuesInEditURLCol,arryAllValues,colOfEditUrl,colOfID,daID,doPreFil,i,IDsave,
+      includeTimeStamp,itemResponse,L,lastRow,makeEditUrl,responzAsObj,rowToOverwrite,thisItem,typeIs,
+      timeZdamp,theE_Url,theEditURL_Is,writeEmail;
+  /*EXTREMELY IMPORTANT!!!  MUST READ!!  If you do not get the answers correctly - there will be missing
+   * columns if some of the questions are not answered.  Apps Script Forms compresses the answers when
+   * there are blank answers.
+  */
+try{
+  includeTimeStamp = theDocPrps.useTimeStamp;
+  IDsave = theDocPrps.DtaDrktr_ID;
+
+  doPreFil=theDocPrps.prefill;
+  makeEditUrl=theDocPrps.editUrl;
+  writeEmail=theDocPrps.DtaDrktr_writeE;
+  if (colPositionsObj){
+    colOfEditUrl=colPositionsObj.colOfEditURL;
+    colOfID=colPositionsObj.colOfID;
+  };
+  
+  daID = theResponse.getId();
+  //ll('daID',daID);
+
+  if (!daID) {
+    sendMsg(undefined,'thisRzpnzAnswers',undefined,'Error getting response ID');
+    return;
+  };
+  arryAllValues = [];
+
+  if (IDsave==="true"){arryAllValues.push(daID);}; //"true" comes back as a string
+  if (includeTimeStamp==="true") { //"true" comes back as a string    
+    timeZdamp = theResponse.getTimestamp();
+    arryAllValues.push(timeZdamp);
+  };
+
+  //ll('items',items);
+  //ll('items.length',items.length);
+  
+  L = items.length;
+  for (i=0;i<L;i+=1) {//This section of code is extremely important - it loops through the ITEMS (questions)
+    //and NOT the response items in the response - which is two different things - This method is used to
+    //make sure the questions with no answers get input as blanks in the correct column
+    thisItem = items[i];
+    typeIs = thisItem.getType();
+
+    if (typeIs===FormApp.ItemType.IMAGE || typeIs===FormApp.ItemType.PAGE_BREAK || typeIs===FormApp.ItemType.SECTION_HEADER) {
+      continue;};
+    
+    responzAsObj = theResponse.getResponseForItem(thisItem);
+    //ll('responzAsObj',responzAsObj)
+    itemResponse = undefined;  //Reset on every loop
+    
+    if (responzAsObj!==null) {itemResponse = responzAsObj.getResponse();};
+    //ll('itemResponse',itemResponse);
+    //ll('typeof itemResponse',typeof itemResponse);
+
+    if (typeof itemResponse==='object') {itemResponse=itemResponse.toString();};
+    if (itemResponse===undefined || itemResponse===null) {itemResponse="";};
+    arryAllValues.push(itemResponse);
+  };
+  //ll('allvalues',arryAllValues.toString());
+  //ll('makeEditUrl',makeEditUrl);
+
+  if (makeEditUrl === 'true') {
+    theEditURL_Is = theResponse.getEditResponseUrl();
+    arryAllValues.push(theEditURL_Is);
+  };
+
+  if (doPreFil === 'true') {
+    arryAllValues.push(theResponse.toPrefilledUrl());
+  };
+
+  if (writeEmail === 'true') {
+    arryAllValues.push(Session.getEffectiveUser().getEmail());
+  };
+  
+  //ll('arryAllValues',arryAllValues.toString())
+  return arryAllValues;
+}catch(e){sendMsg(e,'thisRzpnzAnswers',undefined,'There was an error getting the answers.');};};
+
+function getColHdrs(items,IDsave,includeTimeStamp,makeEditUrl,doPreFil,svEmail) {
+  var i,l,thisItem,typeI,tytils,theTitleIs;
+  tytils=[];theTitleIs="";
+  try{
+  l=items.length;
+  
+  if (IDsave==="true"){tytils.push("ID");};//"true" comes back as a string    
+  if (includeTimeStamp==="true"){tytils.push("Timestamp");};//"true" comes back as a string    
+
+  for (i=0;i<l;i+=1) {
+    thisItem=items[i];
+    if (!thisItem) {
+      tytils.push('Form Field '+(i+1).toString());
+      continue;
+    };
+    typeI=thisItem.getType();
+
+    if (typeI===FormApp.ItemType.IMAGE || typeI===FormApp.ItemType.PAGE_BREAK || typeI===FormApp.ItemType.SECTION_HEADER) {
+      continue;};
+
+    theTitleIs=thisItem.getTitle();
+
+    if (theTitleIs!==""){
+      tytils.push(theTitleIs);
+    }else{
+      tytils.push('Form Field '+(i+1).toString());
+    };
+  };
+
+  if(makeEditUrl==='true'){tytils.push('Edit URL');};
+  if(doPreFil==='true'){tytils.push('PreFilled URL');};
+  if(svEmail==='true'){tytils.push('Submitter Email');};
+
+  return tytils;
+} catch(e) {sendMsg(e,'getColHdrs',undefined,'Error getting column headers');};};
+
+function findTempRow(cols1and2) {//Get the TEMPORARY row of data with the response ID in it.
+try{
+  var ndxOfTempVal,ndxOfTempRowData,o;
+  o={};
+  ndxOfTempVal=cols1and2.indexOf("dd");//This always gets the first row with 'dd'
+  if (ndxOfTempVal===-1) {o.quit=true;return o;};
+
+  ndxOfTempRowData = -1;//Set initial value
+  
+  if (ndxOfTempVal === 0) {//The very first record written to the sheet is a different situation than
+  //every other, because it needs to account for the heading row.  So there needs to be an adjustment.
+  //This is because the APPEND method is used.  Append writes to row one the very first time.  Once there is a header
+  //and data, it will write to the correct place.
+    ndxOfTempRowData = 2;
+  } else {
+    ndxOfTempRowData = (ndxOfTempVal/2) + 1; //Divide by 2 because there are 2 columns of data - This is the ROW!! ROW.  Different than the index needed for the ID
+  };
+  o.rID = cols1and2[ndxOfTempVal+1];
+  o.rowNmbrOfTemp = ndxOfTempRowData;
+
+  return o;
+} catch(e) {
+  sendMsg(e,'findTempRow',undefined,'Error finding temporary data row');
+};
+};

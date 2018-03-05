@@ -1,0 +1,19 @@
+<div id="idGetNamesTab" style="display:none;">
+  <div style="margin-top:12px"></div>
+  <select id="idRunTestSS">
+    <option value="">Choose SS To Save function names to</option>
+    <option value="1_SOGIFBPGom81AM2-HOh2oY3NIMwsK_Ir5pcS5-VO34">Run Tests - Data Director</option>
+    <option value="change_this">Change this</option>
+  </select><span style="margin-left:10px">Spreadsheet to save function names too</span>
+  <br/>
+  <br/>    
+    <input type='text' id="idShInputTxt">  Sheet tab name to write to:
+  <br/>
+  <br/>
+  <input type="button" class="action" value="Get All server Function Names" onmouseup="AlanWells_resetErr(); callSrvrToGetFncNames();">
+  <br/>
+  <br/>
+  <input type="button" class="action" value="Get Duplicate server Function Names" onmouseup="AlanWells_resetErr(); callSrvrToGetFncNames('getDups');">
+</div>
+
+
