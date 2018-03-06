@@ -1,8 +1,8 @@
 # apps-script-update
-This Web App is currently not working correctly.  March 5, 2018.  This is the first time that I've uploaded the complete project.
-This app no longer uses an OAuth library.  The OAuth library is no longer needed.
+I was able to get it to work 3-5-2018 8PM  This app no longer uses an OAuth library.  The OAuth library is no longer needed.
+This version uses the new Google Apps Script API.  Some of the options and features may not work.  I use the options to remove blank lines, remove comments, and remove leading spaces.  Those seem to work.
 
-Updates an existing Apps Script file (target) with the content of another Apps Script file (source).  This code is an Apps Script project.  You must use Apps Script to implement this code.  https://script.google.com
+This Apps Script Web App updates an existing Apps Script file (target) with the content of another Apps Script file (source).  This code is an Apps Script project.  You must use Apps Script to implement this code.  https://script.google.com
 
 This program overwrites one Apps Script file with another Apps Script file.  It includes a user interface and a file picker to get the source and target files.  
 
