@@ -25,8 +25,11 @@ function updateContent(scriptId,content,theAccessTkn) {
   };
   
   response = UrlFetchApp.fetch(url,options);
+  response = JSON.parse(response);//Must be parsed even though it shows as coming back as an object
   
-  Logger.log('response 29: ' + response)
+  Logger.log('typeof response: ' + typeof response)
+  
+  Logger.log('response 29 in file GS_Update: ' + JSON.stringify(response).slice(0,45))
 
   return response;
 //} catch(e) {

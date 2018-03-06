@@ -2,7 +2,7 @@ function getFileData(scriptId,theAccessTkn) {
   var files,options,payload,response,url;
 
   if (!scriptId) {
-    //Logger.log('There was an error - No scriptID')
+    Logger.log('There was an error - No scriptID')
     //Error handling function
     return;
   }

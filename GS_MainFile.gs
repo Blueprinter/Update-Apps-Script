@@ -1,11 +1,7 @@
 function updateFile(argObjOfData) {
   //Main logic branching
-  var requestBody,sourceFileData,targetFileData,theAccessTkn,typeOfFiles,updateStatus;
-
-  //DriveApp.createFile(blob)
-  
+  var newContent,errMsg,requestBody,sourceFileData,targetFileData,theAccessTkn,typeOfFiles,updateStatus;  
   argObjOfData = JSON.parse(argObjOfData);//Create an object from the stringified object from the client
-
   theAccessTkn = ScriptApp.getOAuthToken();
 
   //Logger.log('argObjOfData.idSrcID: ' + argObjOfData.idSrcID);
@@ -32,18 +28,19 @@ function updateFile(argObjOfData) {
   //Logger.log('typeOfFiles: ' + typeOfFiles);
   if (!argObjOfData.idRemoveLogger && !argObjOfData.idDletLead && !argObjOfData.idDletTrail && !argObjOfData.idRemoveComments &&
       !argObjOfData.idLinesBetweenGS && !argObjOfData.idDletSpaces) {
-    //requestBody = sourceFileData;
-    requestBody = buildNewDataObject(sourceFileData, argObjOfData, typeOfFiles);
+    newContent = sourceFileData;
+    //newContent = buildNewDataObject(sourceFileData, argObjOfData, typeOfFiles);
   } else {
-    requestBody = buildNewDataObject(sourceFileData, argObjOfData, typeOfFiles);
+    newContent = buildNewDataObject(sourceFileData, argObjOfData, typeOfFiles);
   }
-  //Logger.log('requestBody 35:' + JSON.stringify(requestBody));
+  Logger.log('typeof newContent 36: ' + typeof newContent);
+  Logger.log('newContent 35:' + JSON.stringify(newContent).slice(0,40));
 
-  //Logger.log('typeof requestBody 37:' + typeof requestBody);
+  //Logger.log('typeof newContent 37:' + typeof newContent);
   
-  if (typeof requestBody !== 'object' && requestBody.slice(0,3) === 'err') {
-    //Logger.log(requestBody);
-    return 'err' + "There is a missing file in the target file: " + requestBody.slice(2);
+  if (typeof newContent !== 'object' && newContent.slice(0,3) === 'err') {
+    //Logger.log(newContent);
+    return 'err' + "There is a missing file in the target file: " + newContent.slice(2);
   }
 
   //Logger.log('argObjOfData.idExportToTxt: ' + argObjOfData.idExportToTxt);
@@ -61,18 +58,27 @@ function updateFile(argObjOfData) {
     } else {
       typeOfFiles = 'both';
     }
-    Logger.log('typeOfFiles: ' + typeOfFiles);
+    Logger.log('typeOfFiles 60: ' + typeOfFiles);
     
-    extractTheFiles(undefined,undefined,requestBody,typeOfFiles);
+    extractTheFiles(undefined,undefined,newContent,typeOfFiles);
   }
   
-  updateStatus = updateContent(argObjOfData.idTrgetID,requestBody, theAccessTkn);
+  requestBody = {};
+  requestBody.files = newContent;
+  Logger.log('requestBody 68: ' + JSON.stringify(requestBody).slice(0,40));
   
-  Logger.log(updateStatus)
+  updateStatus = updateContent(argObjOfData.idTrgetID,requestBody,theAccessTkn);
+  
+  Logger.log('updateStatus 71 in file GS_MainFile: ' + JSON.stringify(updateStatus).slice(0,300))
   
   if (typeof updateStatus !== 'object' && updateStatus.slice(0,3) === 'err') {
-    //Logger.log(requestBody);
     return updateStatus;
+  } else {
+    errMsg = updateStatus.error;
+    if (errMsg) {
+      errMsg = errMsg.message;
+      return 'err' + errMsg;
+    }
   }
   
   if (!updateStatus) {

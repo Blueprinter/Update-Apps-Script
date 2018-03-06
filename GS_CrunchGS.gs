@@ -5,24 +5,35 @@ function crunchGS_Data(objOfData, srcFileData) {//Branching control for which op
     if (!tempStr) {return "//Nothing Left";}
     srcFileData = tempStr;
   }
-  if (objOfData.idDletLead) {srcFileData = dletBegSpaces(srcFileData);}
+  if (objOfData.idDletLead) {
+    srcFileData = dletBegSpaces(srcFileData);
+  }
   //Logger.log('objOfData.idDletTrail: ' + objOfData.idDletTrail)
-  if (objOfData.idDletTrail) {srcFileData = removeTrailingSpaces(srcFileData);}
+  if (objOfData.idDletTrail) {
+    srcFileData = removeTrailingSpaces(srcFileData);
+  }
   
+  //Logger.log('objOfData.idRemoveComments: ' + objOfData.idRemoveComments);
   if (objOfData.idRemoveComments) {
     tempStr = fncCommentsDlet(srcFileData);
-    if (!tempStr) {return "//Nothing Left";}
+    if (!tempStr) {
+      return "//Nothing Left";
+    }
     srcFileData = tempStr;
   }
   
   if (objOfData.idLinesBetweenGS) {
     tempStr = fncRemoveBlankLines(srcFileData);
-    if (!tempStr || tempStr === " ") {return "//Nothing Left";}
+    if (!tempStr || tempStr === " ") {
+      return "//Nothing Left";
+    }
     srcFileData = tempStr;
   }
   //Logger.log('removeLinesGS: ' + removeLinesGS);
 
-  if (objOfData.idDletSpaces) {srcFileData = removeSpaces(srcFileData);};
+  if (objOfData.idDletSpaces) {
+    srcFileData = removeSpaces(srcFileData);
+  }
   //if (objOfData.idConsolidateEnd) {srcFileData = crunchEndBlocks(srcFileData);};
 
   //var d_date = new Date().toString().slice(0,10);

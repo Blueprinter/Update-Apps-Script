@@ -1,8 +1,11 @@
 function fncCommentsDlet(content) {
 try{
-  var cleanContent,counter,dx,hazDataImg,hazHTTPS,L,lastEnd,lastStart,ndxOfDblSlashes,ndxOfThisEnd,
-      thisLine,thisLineCleanedUp,thisLineHzDataImg;
-  if (!content) {return "";}//If a falsy value for content was passed in then quit and return empty string
+  var atEnd,cleanContent,counter,dx,hazDataImg,hazHTTPS,L,lastEnd,lastStart,ndxOfDblSlashes,ndxOfThisEnd,
+      srch,thisLine,thisLineCleanedUp,thisLineHasDataImg,thisLineHzDataImg;
+  if (!content) {
+    //Logger.log('no content error 6')
+    return "";
+  }//If a falsy value for content was passed in then quit and return empty string
 
   //Ive had trouble with a RegExp solution so Im going to first parse just comments behind a double backslash
   //Just find the first double back slash and remove everything until you find an end of line or falsy value at end of file
@@ -15,11 +18,11 @@ try{
   
   L = content.length;
   cleanContent = "";
-  counter=0;
+  counter = 0;
   lastStart = 0;
   lastEnd = 0;
   
-  //Logger.log('L: ' + L)
+  //Logger.log('L 22: ' + L)
   hazDataImg = content.indexOf("data:image");//Search for a data url
   hazDataImg = hazDataImg !== -1;
   
@@ -39,28 +42,33 @@ try{
     
     if (ndxOfThisEnd === -1) {
       ndxOfThisEnd = L;
+      atEnd = true;
     }
     
     thisLine = content.slice(lastEnd,ndxOfThisEnd);//Get the next line in the content
-    //Logger.log('thisLine: ' + thisLine)
+    //Logger.log('thisLine 45: ' + thisLine)
     
     lastEnd = ndxOfThisEnd;//Update the variable to new value after it has been used
     
-    if (!thisLine) {//No new content found
+    if (!thisLine && atEnd) {//No new content found
       break;//The content is already correct.  Don't need to do anything.
     }
     
-    var srch = new RegExp("\/\/");//Find double backslashes
+    srch = new RegExp("\/\/");//Find double backslashes
     
     ndxOfDblSlashes = thisLine.search(srch);//Find the first double slashes in the content that is left
-    //ll('ndxOfDblSlashes: ', ndxOfDblSlashes);
+    //Logger.log('ndxOfDblSlashes 56: ' + ndxOfDblSlashes);
     //Logger.log('ndxOfDblSlashes: ' + ndxOfDblSlashes);
 
     if (ndxOfDblSlashes !== -1) {//There are double slashes found in this line
-      var thisLineHasDataImg = thisLine.indexOf("data:image");
-      
+      //Logger.log('ndxOfDblSlashes are found 63: ');
+      thisLineHasDataImg = thisLine.indexOf("data:image");
+      thisLineCleanedUp = "";//Reset so that it can be checked for falsy in case something fails
       if (!hazDataImg && !hazHTTPS) {
+        //Logger.log('doesnt have data image or URL');
         thisLineCleanedUp = thisLine.slice(0,ndxOfDblSlashes);//Slice out the beginning part
+        //Logger.log(thisLine)
+        //Logger.log(thisLineCleanedUp)
       } else if (hazHTTPS && !hazDataImg) {
         thisLineCleanedUp = cleanIt(thisLine,ndxOfDblSlashes);
       } else if (hazDataImg && !hazHTTPS) {
@@ -75,7 +83,11 @@ try{
         thisLineCleanedUp = cleanBoth(thisLine,ndxOfDblSlashes);
       }
       
-      cleanContent = cleanContent + thisLineCleanedUp;
+      if (thisLineCleanedUp) {
+        cleanContent = cleanContent + thisLineCleanedUp;
+      } else {
+        cleanContent = cleanContent + thisLine;
+      }
       continue;
     } else {
       cleanContent = cleanContent + thisLine;
@@ -83,13 +95,15 @@ try{
     }
   }
 
+  //Logger.log(cleanContent === content)
+  
   if (!cleanContent) {cleanContent = " "};
   //DriveApp.createFile('test output', newContent);
   //ll('newContent: ',newContent);
   return cleanContent;
 }catch(e){
-  //Logger.log('error: ' + e.message + " stack: " + e.stack)
-  return "error: " + e.message + " stack: " + e.stack;
+  Logger.log('error: ' + e.message + " stack: " + e.stack)
+  return "err" + e.message + " stack: " + e.stack;
 }
 };
 
