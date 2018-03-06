@@ -6,9 +6,15 @@ This is Apps Script code.  You must use the Apps Script code editor: https://scr
 
 This Web App no longer uses an OAuth library.  The OAuth library is no longer needed.  I deleted a previous repository with the same name in order to get rid of some personal information that I had included in the code, and the only way to get rid of it is to delete the original repository.
 
-This version uses the new Google Apps Script API.  Some of the options and features may not work.  I use the options to remove blank lines, remove comments, and remove leading spaces.  Those seem to work.
+This version uses the new Google Apps Script API.  [https://developers.google.com/apps-script/api/](https://developers.google.com/apps-script/api/)
 
-This Apps Script Web App updates an existing Apps Script file (target) with the content of another Apps Script file (source).  This code is an Apps Script project.  You must use Apps Script to implement this code.  https://script.google.com
+Some of the options and features in this Web App may not work, but I use the options to remove blank lines, remove comments, and remove leading spaces and that has been working.
+
+This Apps Script Web App will update an existing Apps Script file (target) with the content of another Apps Script file (source).  This code is an Apps Script project.  You must use Apps Script to implement this code.  https://script.google.com
+
+There are other features and options that I've been working on that I don't use, are under developement, are still kind of rough, and may or may not work.  If anyone wants to provide improvements to the code, email me at the Google Plus Community:  
+
+https://plus.google.com/communities/108983987381241798015
 
 This program overwrites one Apps Script file with another Apps Script file.  It includes a user interface and a file picker to get the source and target files.  
 
