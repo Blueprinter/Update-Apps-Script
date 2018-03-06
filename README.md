@@ -52,6 +52,27 @@ You must edit your manifest file.  In the code editor, choose "View" - "Show man
       "exceptionLogging": "STACKDRIVER"
     }
 
+Actually, all the scopes used by the web app are:
+
+    "oauthScopes": [
+        "https://www.googleapis.com/auth/script.projects", 
+        "https://www.googleapis.com/auth/drive.scripts", 
+        "https://mail.google.com/", 
+        "https://www.googleapis.com/auth/drive", 
+        "https://www.googleapis.com/auth/forms", 
+        "https://www.googleapis.com/auth/script.container.ui", 
+        "https://www.googleapis.com/auth/script.external_request", 
+        "https://www.googleapis.com/auth/script.scriptapp", 
+        "https://www.googleapis.com/auth/spreadsheets", 
+        "https://www.googleapis.com/auth/userinfo.email"
+      ]
+      
+You can choose whether to add them all, or just the ones you want.  
+
+One important thing to know, is that the mainifest file is always overwritten, and the manifest file, which is JSON type and named appsscript.json MUST be in the source data to update the target file.
+
+The "update" method of the Apps Script API can and does always replace the manifest file.  So, you can do things like change the library version to another version in this way.
+
 The main function is in the file GS_Main.  Start there.
 
 The main function controls the program flow for the entire process.
