@@ -57,7 +57,7 @@ function buildNewDataObject(sourceFileData, userSettingsObj, typeOfFiles) {
     
     fileType = this_SRC_FileObj.type;
     thisSrcData = this_SRC_FileObj.source;
-    Logger.log('fileType 60: ' + fileType);
+    //Logger.log('fileType 60: ' + fileType);
     //Logger.log('thisSrcData: ' + thisSrcData.slice(0,40));
     
     if (fileType.toLowerCase() === "server_js") {
@@ -79,7 +79,7 @@ function buildNewDataObject(sourceFileData, userSettingsObj, typeOfFiles) {
         this_SRC_FileObj.source = crunchedData;//Put the crunched data back into the object for this file
         sourceFileData[i] = this_SRC_FileObj;//Replace the source file data in the array with the new file object 
       } else {
-        Logger.log('just getting the same data back 79')
+        //Logger.log('just getting the same data back 79')
         continue;//do nothing - the source data will simply remain the same for this file object
       }
       /*FOR DEBUGGING
@@ -108,21 +108,21 @@ function buildNewDataObject(sourceFileData, userSettingsObj, typeOfFiles) {
         }
       }
       */
-    } else if (fileType.toLowerCase === "html") {//There is also a JSON file which should not be processed so explicitly get html
-      //Logger.log('going to crunch HTML file')
+    } else if (fileType.toLowerCase() === "html") {//There is also a JSON file which should not be processed so explicitly get html
+      Logger.log('going to crunch HTML file')
       if (typeOfFiles === "html" || typeOfFiles === "both") {
-        crunchedData = crunch_HTML_File(userSettingsObj, thisSrcData, srcFileName);
+        crunchedData = crunch_HTML_File(userSettingsObj, thisSrcData);
         this_SRC_FileObj.source = crunchedData;//Put the crunched data back into the object for this file
         sourceFileData[i] = this_SRC_FileObj;//Replace the source file data in the array with the new file object 
       } else {
-        Logger.log('just getting the same data back 112')
+        //Logger.log('just getting the same data back 112')
         continue;//do nothing - the source data will simply remain the same for this file object
       }
       //Logger.log('crunchedData html 112: ' + crunchedData)
       this_SRC_FileObj.source = crunchedData;//Put the crunched data back into the object for this file
       sourceFileData[i] = this_SRC_FileObj;//Replace the source file data in the array with the new file object 
     } else if (fileType.toLowerCase === "json") {//The JSON file MUST be put back into the file content
-      Logger.log('it the appsscript file')
+      //Logger.log('it the appsscript file')
       continue;//do nothing - the source data will simply remain the same for this file object
       //Logger.log('crunchedData 120: ' + crunchedData)
     };

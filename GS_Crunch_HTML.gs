@@ -1,8 +1,9 @@
-function crunch_HTML_File(objOfData, srcFileData, fileName) {
+function crunch_HTML_File(objOfData, srcFileData) {
   var cache,hazScrplet,howManyLoops,rawContent,rgX_pttrn,tempStr;
 
   //cache = CacheService.getScriptCache();
-
+  Logger.log('Running crunch_HTML_File: ' + objOfData.idRemoveComments)
+  
   if (objOfData.idRemoveComments) {
     try{
       //howManyLoops = cache.get('loops');
@@ -18,7 +19,6 @@ function crunch_HTML_File(objOfData, srcFileData, fileName) {
       
       hazScrplet = srcFileData.indexOf("<?") !== -1;
       //ll('hazScrplet',hazScrplet);
-      //ll('fileName',fileName);
       
       if (!hazScrplet) {
         tempStr = HtmlService.createHtmlOutput(srcFileData).getContent();//This strips out the comments
@@ -63,8 +63,9 @@ function crunch_HTML_File(objOfData, srcFileData, fileName) {
     srcFileData = tempStr;
   };
 
+  
   if (objOfData.idLinesBetweenGS) {
-    //ll('passed test to delete empty lines')
+    //Logger.log('passed test to delete empty lines')
     tempStr = fncRemoveBlankLines(srcFileData);
     if (!tempStr || tempStr === " ") {return "//Nothing Left"};
     srcFileData = tempStr;

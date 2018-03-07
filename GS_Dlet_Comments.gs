@@ -95,6 +95,7 @@ try{
     }
   }
 
+  cleanContent = removeMultilineComments(cleanContent);
   //Logger.log(cleanContent === content)
   
   if (!cleanContent) {cleanContent = " "};
@@ -151,9 +152,10 @@ function cleanBoth(thisLine,ndxOfDblSlashes) {
   }
 }
 
-function removeMultilineComments() {
+function removeMultilineComments(content) {
+  var begOfWhatsLeftToSlashes,endPart,ndxOfEnd,ndxOfSlashAsterix;
   
-    while (ndxOfSlashAsterix !== -1) {//This loop is for multi line comments
+  while (ndxOfSlashAsterix !== -1) {//This loop is for multi line comments
     //ll('newContent.length;: ',content.length)
     content = content.trim();
     ndxOfSlashAsterix = content.indexOf("/*");
@@ -182,4 +184,6 @@ function removeMultilineComments() {
       break;
     }
   };
+  
+  return content;
 }

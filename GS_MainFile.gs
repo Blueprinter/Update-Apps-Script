@@ -33,8 +33,8 @@ function updateFile(argObjOfData) {
   } else {
     newContent = buildNewDataObject(sourceFileData, argObjOfData, typeOfFiles);
   }
-  Logger.log('typeof newContent 36: ' + typeof newContent);
-  Logger.log('newContent 35:' + JSON.stringify(newContent).slice(0,40));
+  //Logger.log('typeof newContent 36: ' + typeof newContent);
+  //Logger.log('newContent 35:' + JSON.stringify(newContent).slice(0,40));
 
   //Logger.log('typeof newContent 37:' + typeof newContent);
   
@@ -58,7 +58,7 @@ function updateFile(argObjOfData) {
     } else {
       typeOfFiles = 'both';
     }
-    Logger.log('typeOfFiles 60: ' + typeOfFiles);
+    //Logger.log('typeOfFiles 60: ' + typeOfFiles);
     
     extractTheFiles(undefined,undefined,newContent,typeOfFiles);
   }
