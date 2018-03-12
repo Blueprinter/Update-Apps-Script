@@ -9,7 +9,17 @@ function updateFile(argObjOfData) {
 
   sourceFileData = getFileData(argObjOfData.idSrcID, theAccessTkn);//Get content out of the source file
   //Logger.log('sourceFileData:' + JSON.stringify(sourceFileData));
-
+  
+  if (typeof sourceFileData !== 'object' && sourceFileData.slice(0,3) === 'err') {
+    return sourceFileData;
+  } else {
+    errMsg = sourceFileData.error;
+    if (errMsg) {
+      errMsg = errMsg.message;
+      return 'err' + errMsg;
+    }
+  }
+  
   targetFileData = getFileData(argObjOfData.idTrgetID, theAccessTkn);
   //Logger.log('targetFileData:' + JSON.stringify(targetFileData));
 
