@@ -1,5 +1,5 @@
 function getFileData(scriptId,theAccessTkn) {  
-  var files,options,payload,response,url;
+  var errMsg,files,options,payload,response,url;
 
   if (!scriptId) {
     Logger.log('There was an error - No scriptID')
