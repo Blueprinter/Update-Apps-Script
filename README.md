@@ -1,8 +1,8 @@
 # apps-script-update
  
- * Overwrite an existing Apps Script file with modified content coming from a different source file.
+ * Overwrites an existing (Target) Apps Script file with content coming from a source Apps Script file.
 
-This is Apps Script code.  You must use the Apps Script code editor: https://script.google.com
+This repository is Apps Script code.  You must use the Apps Script code editor: https://script.google.com
 
 You must somehow get the code in this repository into an Apps Script file that you own, then publish the Apps Script file as a web app.
 
