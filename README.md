@@ -6,7 +6,7 @@ This repository is Apps Script code.  You must use the Apps Script code editor: 
 
 You must somehow get the code in this repository into an Apps Script file that you own, then publish the Apps Script file as a web app.
 
-You can fork this repository into your Git Hub account, then from the Apps Script code editor, use the "Git Hub Assistant" Chome Extension to pull this code into your Apps Script file.
+You can fork this repository into your Git Hub account, then from the Apps Script code editor, use the "Git Hub Assistant" Chome Extension to pull this code into your Apps Script file.  From your Chrome Browser, choose "More Tools" then "Extensions"  Scroll down, and click the "Get more extensions" link.  Search for github assistant.  Install the Google Apps Script Github Assistant.
 
 After you get this code into your Apps Script file, you can publish it as a Web App.  In the code editor, choose the "Publish" menu and click the menu item "Deploy as web app"
 
