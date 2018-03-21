@@ -4,7 +4,15 @@
 
 This is Apps Script code.  You must use the Apps Script code editor: https://script.google.com
 
-This Web App no longer uses an OAuth library.  The OAuth library is no longer needed.  I deleted a previous repository with the same name in order to get rid of some personal information that I had included in the code, and the only way to get rid of it is to delete the original repository.
+You must somehow get the code in this repository into an Apps Script file that you own, then publish the Apps Script file as a web app.
+
+You can fork this repository into your Git Hub account, then from the Apps Script code editor, use the "Git Hub Assistant" Chome Extension to pull this code into your Apps Script file.
+
+After you get this code into your Apps Script file, you can publish it as a Web App.  In the code editor, choose the "Publish" menu and click the menu item "Deploy as web app"
+
+Publish -> Deploy as web app
+
+This Web App does not use an OAuth library.  The OAuth library is not needed.  You do not need to do anything in your Google Cloud Console to get this web app to use the Google Apps Script API.
 
 This version uses the new Google Apps Script API.  [https://developers.google.com/apps-script/api/](https://developers.google.com/apps-script/api/)
 
