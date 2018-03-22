@@ -62,7 +62,7 @@ try{
 
     if (ndxOfDblSlashes !== -1) {//There are double slashes found in this line
       //Logger.log('ndxOfDblSlashes are found 63: ');
-      thisLineHasDataImg = thisLine.indexOf("data:image");
+      thisLineHasDataImg = thisLine.indexOf("data:image") !== -1;
       thisLineCleanedUp = "";//Reset so that it can be checked for falsy in case something fails
       if (!hazDataImg && !hazHTTPS) {
         //Logger.log('doesnt have data image or URL');
